@@ -17,6 +17,8 @@ plugins=(
   zsh-syntax-highlighting
   themes
 )
-source $ZSH/oh-my-zsh.sh' >> ~/.zshrc
+source $ZSH/oh-my-zsh.sh
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+export PATH=$PATH:~/.fzf/bin' >> ~/.zshrc
 
-source ~/.zshrc
+cp ./p10k.zsh ~/.p10k.zsh
