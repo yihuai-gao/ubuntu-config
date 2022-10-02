@@ -12,7 +12,7 @@ sudo apt-get install fzf ||{
     ~/.fzf/install
 }
 sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
+sudo apt-get install python-pip
 git config --global user.name "DavidGao"
 git config --global user.email "davidgao1013@gmail.com"
 touch ~/.gitignore_global
