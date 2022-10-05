@@ -22,3 +22,6 @@ source $ZSH/oh-my-zsh.sh
 export PATH=$PATH:~/.fzf/bin' >> ~/.zshrc
 
 cp ./p10k.zsh ~/.p10k.zsh
+
+sudo cp 'Sauce Code Pro Nerd Font Complete.ttf' /usr/local/share/fonts
+fc-cache -f -v
