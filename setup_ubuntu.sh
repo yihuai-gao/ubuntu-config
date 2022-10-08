@@ -5,7 +5,7 @@ echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIK7guJTbrJLZuyeJ7oNDVGmE+NU92J/Uu2I9u
 # echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 
 pip3 install wheel ranger-fm archey4
-sudo apt update && apt install zsh --yes
+sudo apt update && sudo apt install zsh --yes
 sudo apt-get update
 sudo apt-get install fzf ||{
     git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
