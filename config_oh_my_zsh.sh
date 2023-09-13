@@ -20,7 +20,18 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 export PATH=$PATH:~/.fzf/bin
-export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
+
+# zsh-autocomplete settings
+bindkey -M menuselect "\r" .accept-line
+bindkey -M menuselect -s \
+    "^R" "^_^_^R" \
+    "^S" "^_^_^S"
+bindkey -M menuselect \
+    "\\e[D" .backward-char \
+    "\\eOD" .backward-char \
+    "\\e[C" .forward-char \
+    "\\eOC" .forward-char' >> ~/.zshrc
 
 cp ./p10k.zsh ~/.p10k.zsh
 
