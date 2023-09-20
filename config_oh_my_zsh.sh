@@ -31,7 +31,8 @@ bindkey -M menuselect \
     "\\e[D" .backward-char \
     "\\eOD" .backward-char \
     "\\e[C" .forward-char \
-    "\\eOC" .forward-char' >> ~/.zshrc
+    "\\eOC" .forward-char
+bindkey '^H' backward-kill-word' >> ~/.zshrc
 
 cp ./p10k.zsh ~/.p10k.zsh
 
