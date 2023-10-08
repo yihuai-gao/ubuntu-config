@@ -23,7 +23,7 @@ export PATH=$PATH:~/.fzf/bin
 export PATH="$HOME/.local/bin:$PATH"
 
 # zsh-autocomplete settings
-bindkey -M menuselect "\r" .accept-line
+bindkey -M menuselect "\\r" .accept-line
 bindkey -M menuselect -s \
     "^R" "^_^_^R" \
     "^S" "^_^_^S"
