@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 RUN apt-get update &&\
     apt-get install git -y
 
+WORKDIR /root
 
 RUN git clone https://github.com/paladin1013/ubuntu-configs.git
 

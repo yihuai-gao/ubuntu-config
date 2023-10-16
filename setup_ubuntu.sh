@@ -7,10 +7,10 @@ fi
 
 
 $CMD_PREFIX apt-get update
-$CMD_PREFIX apt-get install zsh fontconfig curl git python3-pip python vim net-tools htop python-pip -y
+$CMD_PREFIX apt-get install zsh fontconfig curl git python3 python3-pip vim net-tools wget htop -y
 
 # To fix SSL error that may occur
-$CMD_PREFIX apt-get install ca-certificates --reinstall
+$CMD_PREFIX apt-get install ca-certificates --reinstall -y
 
 # ranger is a easy-to-use file manager in terminal, see https://github.com/ranger/ranger
 # archey is a system tool to display all system information, see https://github.com/HorlogeSkynet/archey4
@@ -30,7 +30,7 @@ echo ".DS_Store
 git config --global core.excludesfile ~/.gitignore_global
 
 # Install fzf, a command line fuzzy finder, see https://github.com/junegunn/fzf
-$CMD_PREFIX apt-get install fzf ||{
+$CMD_PREFIX apt-get install fzf -y ||{
     git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
     ~/.fzf/install
 }
