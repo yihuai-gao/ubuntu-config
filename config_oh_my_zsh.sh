@@ -1,5 +1,5 @@
 # Specify whether the script is running as root
-if [ "$EUID" -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   CMD_PREFIX="sudo"
 else
   CMD_PREFIX=""

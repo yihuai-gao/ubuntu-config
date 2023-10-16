@@ -1,13 +1,13 @@
 # Specify whether the script is running as root
-if [ "$EUID" -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   CMD_PREFIX="sudo"
 else
   CMD_PREFIX=""
 fi
 
 
-$CMD_PREFIX apt-get update && $CMD_PREFIX apt-get install zsh --yes
-$CMD_PREFIX apt-get install curl git python3-pip python vim net-tools htop
+$CMD_PREFIX apt-get update
+$CMD_PREFIX apt-get install zsh fontconfig curl git python3-pip python vim net-tools htop python-pip -y
 
 # To fix SSL error that may occur
 $CMD_PREFIX apt-get install ca-certificates --reinstall
@@ -18,7 +18,6 @@ pip3 install wheel ranger-fm archey4
 
 # Official script to install oh-my-zsh. The file is pre-downloaded as servers in China may not have access to the online script.
 ./install_oh_my_zsh.sh
-$CMD_PREFIX apt-get install python-pip
 
 # TODO: Please change to your own user name and email
 git config --global user.name "DavidGao"
