@@ -5,9 +5,9 @@ RUN apt-get update &&\
 
 WORKDIR /root
 
-RUN git clone https://github.com/paladin1013/ubuntu-configs.git
+RUN git clone https://github.com/paladin1013/ubuntu-config.git
 
-RUN cd ubuntu-configs && \
+RUN cd ubuntu-config && \
     ./setup_ubuntu.sh && \
     ./config_oh_my_zsh.sh && \
     ./install_mamba.sh
