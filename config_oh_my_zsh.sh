@@ -1,5 +1,12 @@
+# Specify whether the script is running as root
+if [ "$EUID" -ne 0 ]; then
+  CMD_PREFIX="sudo"
+else
+  CMD_PREFIX=""
+fi
+
 # Install plugins for oh-my-zsh
-sudo apt install lua5.3
+$CMD_PREFIX apt-get install lua5.3
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
@@ -55,5 +62,5 @@ cp ./p10k.zsh ~/.p10k.zsh
 # You can update the GNOME terminal font in Preference -> Profiles (usually Unnamed) -> Costom font
 # If you are using VSCode remote-ssh to connect to your linux server, you can search "terminal font" in vscode preferences
 # and set it to "SauceCodePro Nerd Font"
-sudo cp 'Sauce Code Pro Nerd Font Complete.ttf' /usr/local/share/fonts
+$CMD_PREFIX cp 'Sauce Code Pro Nerd Font Complete.ttf' /usr/local/share/fonts
 fc-cache -f -v
