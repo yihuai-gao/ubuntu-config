@@ -19,9 +19,6 @@ pip3 install wheel ranger-fm archey4
 # Official script to install oh-my-zsh. The file is pre-downloaded as servers in China may not have access to the online script.
 ./install_oh_my_zsh.sh
 
-# TODO: Please change to your own user name and email
-git config --global user.name "DavidGao"
-git config --global user.email "davidgao1013@gmail.com"
 
 # Global gitignore configuration. Feel free to comment out the following lines if you don't need it.
 touch ~/.gitignore_global
