@@ -32,7 +32,7 @@ If you are using remote ssh to connect to a server and set up a zsh environment 
 This will install some necessary or useful packages for a brand-new ubuntu server/pc.
 
 Some useful packages:
-- [`archey`](https://github.com/HorlogeSkynet/archey4) is a system tool to display all system information (similar to `neofetch`, but easier to install). Install through `pip install archey4`; type `archey` in terminal to use.
+- [`archey`](https://github.com/HorlogeSkynet/archey4) is a system tool to display all system information (similar to `neofetch`, but can be installed without sudo). Install through `pip install archey4`; type `archey` in terminal to use.
     ![Alt text](images/archey.png)
 - [`ranger`](https://github.com/ranger/ranger) is a vim-like file manager in terminal. Install through `pip install ranger-fm`; type `ranger` in terminal to use; check [ranger-cheetsheet](https://gist.github.com/heroheman/aba73e47443340c35526755ef79647eb) for hotkeys. 
     ![Alt text](images/ranger.png)
