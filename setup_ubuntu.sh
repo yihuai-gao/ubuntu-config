@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Specify whether the script is running as root
 if [ "$(id -u)" -ne 0 ]; then
   CMD_PREFIX="sudo"
@@ -31,3 +33,11 @@ $CMD_PREFIX apt-get install fzf -y ||{
     git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
     ~/.fzf/install
 }
+
+
+# Install font. 
+# You can update the GNOME terminal font in Preference -> Profiles (usually Unnamed) -> Costom font
+# If you are using VSCode remote-ssh to connect to your linux server, you can search "terminal font" in vscode preferences
+# and set it to "SauceCodePro Nerd Font"
+$CMD_PREFIX cp 'Sauce Code Pro Nerd Font Complete.ttf' /usr/local/share/fonts
+fc-cache -f -v

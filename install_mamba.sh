@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Execute this file after all the other configuration steps.
 # Use mamba (which is the default version in miniforge3) as a replacement for conda.
 # If you want to use mamba, please uninstall your conda environment first.

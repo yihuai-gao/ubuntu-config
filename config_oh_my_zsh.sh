@@ -1,16 +1,9 @@
-# Specify whether the script is running as root
-if [ "$(id -u)" -ne 0 ]; then
-  CMD_PREFIX="sudo"
-else
-  CMD_PREFIX=""
-fi
+#!/bin/sh
 
 # Install plugins for oh-my-zsh
-$CMD_PREFIX apt-get install lua5.3 -y
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/skywind3000/z.lua.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua
 git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
 
 
@@ -58,9 +51,3 @@ bindkey '^H' backward-kill-word' >> ~/.zshrc
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh
 
-# Install font. 
-# You can update the GNOME terminal font in Preference -> Profiles (usually Unnamed) -> Costom font
-# If you are using VSCode remote-ssh to connect to your linux server, you can search "terminal font" in vscode preferences
-# and set it to "SauceCodePro Nerd Font"
-$CMD_PREFIX cp 'Sauce Code Pro Nerd Font Complete.ttf' /usr/local/share/fonts
-fc-cache -f -v
