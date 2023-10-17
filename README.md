@@ -2,7 +2,6 @@
 
 ## Usage
 
-This repository consists of the following three parts
 
 ### Install oh-my-zsh with basic plugins (without sudo)
 ```sh
@@ -59,7 +58,7 @@ docker build -t zsh-test .
 docker run -e "TERM=xterm-256color" -it zsh-test
 ```
 
-If you are using `bash` before, you can mount your `./bash_history` to `./zsh_history` when running the container to have a look at the command autocompletion:
+If you are using `bash` before, you can mount your `~/.bash_history` to `/root/.zsh_history` when running the container to have a look at the command autocompletion:
 ```sh
 docker build -t zsh-test .
 docker run -e "TERM=xterm-256color" --mount source=$HOME/.bash_history,target=/root/.zsh_history,type=bind -it zsh-test
