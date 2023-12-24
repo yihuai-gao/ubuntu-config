@@ -17,12 +17,14 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~
 # git clone git@github.com:skywind3000/z.lua.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua
 # git clone --depth=1 git@github.com:romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
 
+# Alternative (requries Nerd Fonts) ZSH_THEME="powerlevel10k/powerlevel10k"
+
 # Create a backup of zshrc. If you have modified it, please remember to copy the modified content to the new zshrc.
 mv ~/.zshrc ~/.zshrc_bak
 touch ~/.zshrc
 echo '
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"
+ZSH_THEME="eastwood"
 plugins=(
   git
   zsh-autosuggestions
