@@ -10,7 +10,7 @@ RUN git clone https://github.com/paladin1013/ubuntu-config.git
 RUN cd ubuntu-config && \
     ./setup_ubuntu.sh && \
     ./config_oh_my_zsh.sh && \
-    ./install_mamba.sh
+    ./install_conda.sh
 
 SHELL ["/bin/zsh", "-ec"]
 CMD ["zsh"]
