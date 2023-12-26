@@ -6,17 +6,17 @@
 # `mamba install/create` is much faster than `conda install/create`
 
 arch=$(uname -m)
-system=$(uname -s)
+sys=$(uname -s)
 # Convert from Darwin to MaxOSX
-if [ "$system" = "Darwin" ]; then
-    system="MacOSX"
+if [ "$sys" = "Darwin" ]; then
+    sys="MacOSX"
 fi
 
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(system)-$(arch).sh
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$sys-$arch.sh
 
-bash Miniforge3-$(system)-$(arch).sh -b -p ~/miniforge3
-rm Miniforge3-$(system)-$(arch).sh
-~/miniforge3/bin/conda init zsh
-~/miniforge3/bin/conda init bash
-~/miniforge3/bin/mamba init zsh
-~/miniforge3/bin/mamba init bash
+bash Miniforge3-$sys-$arch.sh -b -p ~/miniforge3
+rm Miniforge3-$sys-$arch.sh
+$HOME/miniforge3/bin/conda init zsh
+$HOME/miniforge3/bin/conda init bash
+$HOME/miniforge3/bin/mamba init zsh
+$HOME/miniforge3/bin/mamba init bash
