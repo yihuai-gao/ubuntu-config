@@ -7,10 +7,6 @@
 
 arch=$(uname -m)
 sys=$(uname -s)
-# Convert from Darwin to MaxOSX
-if [ "$sys" = "Darwin" ]; then
-    sys="MacOSX"
-fi
 
 wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$sys-$arch.sh
 

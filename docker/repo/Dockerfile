@@ -13,7 +13,9 @@ WORKDIR /home/${USERNAME}
 
 
 USER ${USERNAME}
-RUN git clone https://github.com/paladin1013/ubuntu-config.git
+RUN git clone https://github.com/paladin1013/ubuntu-config.git && \
+    cd ubuntu-config && \
+    git checkout d6270f472f4b788a46d6d6c123fbdff80dfb1599
 
 USER root
 RUN cd ubuntu-config && \
