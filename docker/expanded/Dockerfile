@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 RUN apt-get update &&\
-    apt-get install git zsh curl git vim net-tools wget htop x11-apps neofetch -y
+    apt-get install git zsh curl git vim net-tools wget htop x11-apps neofetch sudo -y
 
 RUN apt-get install ca-certificates --reinstall -y
 
@@ -10,7 +10,7 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 RUN groupadd -g ${USER_GID} ${USERNAME} && \
-    useradd ${USERNAME}  -u ${USER_UID} -g ${USER_GID} -m -p "$(openssl passwd -1 real)"
+    useradd ${USERNAME}  -u ${USER_UID} -g ${USER_GID} -m -p "$(openssl passwd -1 ${USERNAME}})"
 RUN usermod -aG sudo ${USERNAME}
 # Give ownership of the user's home directory to the new user
 RUN chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
@@ -47,6 +47,26 @@ RUN ARCH=$(uname -m) && SYS=$(uname -s) && \
     ${HOME}/miniforge3/bin/conda init bash && \
     ${HOME}/miniforge3/bin/mamba init zsh && \
     ${HOME}/miniforge3/bin/mamba init bash
+
+
+# pre-install vscode server and helpful plugins
+RUN git clone https://gist.github.com/0a16b6645ab7921b0910603dfb85e4fb.git /home/${USERNAME}/vscode-install && \
+    chmod +x /home/${USERNAME}/vscode-install/download-vs-code-server.sh && \
+    /home/${USERNAME}/vscode-install/download-vs-code-server.sh
+ENV PATH=/home/${USERNAME}/.vscode-server/bin/default_version/bin:$PATH
+RUN code-server --install-extension ms-python.python && \
+    code-server --install-extension mhutchie.git-graph && \
+    code-server --install-extension eamodio.gitlens && \
+    code-server --install-extension github.copilot && \
+    code-server --install-extension kevinrose.vsc-python-indent && \
+    code-server --install-extension streetsidesoftware.code-spell-checker && \
+    code-server --install-extension ms-python.black-formatter
+
+# Enable using `code` command in terminal to open file or attach new window to a folder
+RUN echo "export PATH=/home/${USERNAME}/.vscode-server/bin/default_version/bin/remote-cli:\$PATH" >> /home/${USERNAME}/.zshrc
+
+
+
 
 SHELL ["/bin/zsh", "-ec"]
 CMD ["zsh"]
