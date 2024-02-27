@@ -52,7 +52,7 @@ RUN ARCH=$(uname -m) && SYS=$(uname -s) && \
 # pre-install vscode server and helpful plugins
 RUN git clone https://gist.github.com/0a16b6645ab7921b0910603dfb85e4fb.git /home/${USERNAME}/vscode-install && \
     chmod +x /home/${USERNAME}/vscode-install/download-vs-code-server.sh && \
-    /home/${USERNAME}/vscode-install/download-vs-code-server.sh
+    /home/${USERNAME}/vscode-install/download-vs-code-server.sh linux
 ENV PATH=/home/${USERNAME}/.vscode-server/bin/default_version/bin:$PATH
 RUN code-server --install-extension ms-python.python && \
     code-server --install-extension mhutchie.git-graph && \
