@@ -10,7 +10,7 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 RUN groupadd -g ${USER_GID} ${USERNAME} && \
-    useradd ${USERNAME}  -u ${USER_UID} -g ${USER_GID} -m -p "$(openssl passwd -1 ${USERNAME}})"
+    useradd ${USERNAME}  -u ${USER_UID} -g ${USER_GID} -m -p "$(openssl passwd -1 ${USERNAME})"
 RUN usermod -aG sudo ${USERNAME}
 # Give ownership of the user's home directory to the new user
 RUN chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
