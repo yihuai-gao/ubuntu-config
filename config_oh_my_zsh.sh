@@ -46,9 +46,17 @@ bindkey -M menuselect \
     "\\e[D" .backward-char \
     "\\eOD" .backward-char \
     "\\e[C" .forward-char \
-    "\\eOC" .forward-char
+    "\\eOC" .forward-char \
+    "^[[1;5D" .backward-word \
+    "^[[1;5C" .forward-word
+
 #   Use Ctrl-Backsbace to kill the word before the cursor
-bindkey '^H' backward-kill-word' >> ~/.zshrc
+bindkey "^H" backward-kill-word
+zstyle ":autocomplete:*" delay 0.2  # seconds (float)
+zstyle ":autocomplete:*" min-input 3    # characters
+zstyle ":autocomplete:history-search-backward:*" list-lines 100
+zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 100
+' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh
