@@ -25,6 +25,12 @@ touch ~/.zshrc
 echo '
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="eastwood"
+
+# To suppress some warning messages
+zle -N insert-unambiguous-or-complete 
+zle -N menu-search
+zle -N recent-paths
+
 plugins=(
   git
   zsh-autosuggestions
