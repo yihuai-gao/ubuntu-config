@@ -42,6 +42,7 @@ source $ZSH/oh-my-zsh.sh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 export PATH=$PATH:~/.fzf/bin
 export PATH="$HOME/.local/bin:$PATH"
+export EDITOR="vim"
 
 # Costomized zsh-autocomplete settings: please refer to https://github.com/marlonrichert/zsh-autocomplete
 #   Make Enter submit the command line straight from the menu
