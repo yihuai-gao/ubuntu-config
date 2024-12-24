@@ -1,0 +1,372 @@
+{
+    "licenser.disableAutoHeaderInsertion": true,
+    "editor.smoothScrolling": false,
+    "editor.parameterHints.enabled": false,
+    "editor.quickSuggestions": {
+        "comments": "on",
+        "strings": "on",
+        "other": "on"
+    },
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "pdflatex -> bibtex -> pdflatex*2",
+            "tools": [
+                "pdflatex",
+                "bibtex",
+                "pdflatex",
+                "pdflatex"
+            ]
+        },
+        {
+            "name": "xelatex",
+            "tools": [
+                "xelatex"
+            ]
+        },
+        {
+            "name": "pdflatex",
+            "tools": [
+                "pdflatex"
+            ]
+        },
+        {
+            "name": "latexmk",
+            "tools": [
+                "latexmk"
+            ]
+        },
+        {
+            "name": "xelatex -> bibtex -> xelatex*2",
+            "tools": [
+                "xelatex",
+                "bibtex",
+                "xelatex",
+                "xelatex"
+            ]
+        }
+    ],
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "%DOC%"
+            ]
+        },
+        {
+            "name": "xelatex",
+            "command": "xelatex",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "%DOC%"
+            ]
+        },
+        {
+            "name": "pdflatex",
+            "command": "pdflatex",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "%DOC%"
+            ]
+        },
+        {
+            "name": "bibtex",
+            "command": "bibtex",
+            "args": [
+                "%DOCFILE%"
+            ]
+        }
+    ],
+    "latex-workshop.latex.clean.fileTypes": [
+        "*.aux",
+        "*.bbl",
+        "*.blg",
+        "*.idx",
+        "*.ind",
+        "*.lof",
+        "*.lot",
+        "*.out",
+        "*.toc",
+        "*.acn",
+        "*.acr",
+        "*.alg",
+        "*.glg",
+        "*.glo",
+        "*.gls",
+        "*.ist",
+        "*.fls",
+        "*.log",
+        "*.fdb_latexmk"
+    ],
+    "latex-workshop.view.pdf.viewer": "external",
+    "latex-workshop.view.pdf.external.viewer.args": [
+        "0",
+        "%PDF%"
+    ],
+    "latex-workshop.view.pdf.external.synctex.args": [
+        "-forward-search",
+        "%TEX%",
+        "%LINE%",
+        "-reuse-instance",
+        "-inverse-search",
+        "\"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code/Code.exe\" \"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\out\\cli.js\" -r -g \"%f:%l\"",
+        "%PDF%"
+    ],
+    "latex-workshop.synctex.synctexjs.enabled": true,
+    "latex-workshop.synctex.afterBuild.enabled": true,
+    "C_Cpp.clang_format_style": "Microsoft",
+    "verilog-format.path": "D:\\gyh\\verilog-format-1.0.1\\bin",
+    "C_Cpp.updateChannel": "Insiders",
+    "workbench.editorAssociations": {
+        "*.svg": "default",
+        "*.drawio": "hediet.vscode-drawio-text",
+        "*.ipynb": "jupyter-notebook",
+        "*.cls": "latex",
+        "*.md": "default",
+        "git-rebase-todo": "default"
+    },
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "args": []
+        },
+        "Git Bash": {
+            "source": "Git Bash"
+        }
+    },
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "files.associations": {
+        "*.ino": "cpp",
+        "*.m": "matlab",
+        "*.cls": "latex",
+        "*.dtx": "latex",
+        "*.lsf": "matlab"
+    },
+    "files.autoGuessEncoding": true,
+    "arduino.path": "C:\\Program Files (x86)\\Arduino",
+    "editor.wordWrapColumn": 8,
+    "editor.snippetSuggestions": "top",
+    "settingsSync.ignoredSettings": [
+        "latex-workshop.view.pdf.external.synctex.args",
+        "terminal.integrated.fontFamily",
+        "latex-workshop.view.pdf.external.viewer.command",
+        "latex-workshop.view.pdf.external.synctex.command",
+        "terminal.external.windowsExec",
+        "python.languageServer"
+    ],
+    "security.workspace.trust.untrustedFiles": "open",
+    "remote.SSH.remotePlatform": {
+        "166.111.25.29": "linux",
+        "wuhao": "linux",
+        "166.111.26.45": "linux",
+        "PhysicsDept": "linux",
+        "HaoWu": "linux",
+        "101.6.68.82": "linux",
+        "MSRA": "linux",
+        "39.104.18.188": "linux",
+        "M4Old": "windows",
+        "M4New": "windows",
+        "AlibabaRoot": "linux",
+        "192.168.138.128": "linux",
+        "drone": "linux",
+        "xtark": "linux",
+        "Judge": "linux",
+        "Hank": "linux",
+        "Alibaba": "linux",
+        "YihuaiMBP": "macOS",
+        "Woodbury": "linux",
+        "realdesktop003.stanford.edu": "linux",
+        "real003": "linux",
+        "real004": "linux",
+        "realdesktop003": "linux",
+        "real005": "linux",
+        "Kalman": "linux",
+        "Go2": "linux",
+        "OrinNX": "linux",
+        "Turing": "linux"
+    },
+    "diffEditor.wordWrap": "off",
+    "screencastMode.fontSize": 30,
+    "screencastMode.keyboardOverlayTimeout": 500,
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+    "files.defaultLanguage": "P`",
+    "editor.suggestSelection": "first",
+    "gitlens.advanced.messages": {
+        "suppressCreatePullRequestPrompt": true
+    },
+    "terminal.integrated.defaultProfile.windows": "Ubuntu-22.04 (WSL)",
+    "notebook.output.textLineLimit": 10000,
+    "terminal.integrated.inheritEnv": false,
+    "python.defaultInterpreterPath": "/Users/davidgao/opt/anaconda3/bin/python",
+    "remote.SSH.configFile": "~/.ssh/config",
+    "settingsSync.ignoredExtensions": [
+        "james-yu.latex-workshop",
+        "vasilescur.better-mips",
+        "tcwalther.cython",
+        "metalcode-eu.darwin-riscv",
+        "hediet.vscode-drawio-insiders-build",
+        "wholroyd.jinja",
+        "himanoa.python-autopep8",
+        "ms-vscode-remote.remote-wsl",
+        "ms-vscode-remote.remote-containers"
+    ],
+    "python.languageServer": "Default",
+    "debug.inlineValues": true,
+    "git.confirmSync": false,
+    "python.analysis.completeFunctionParens": true,
+    "matlab-formatter.pythonPath": "D:\\\\ProgramFiles\\\\Anaconda\\\\python.exe",
+    "editor.inlineSuggest.enabled": true,
+    "github.copilot.enable": {
+        "*": true,
+        "yaml": false,
+        "plaintext": false,
+        "markdown": false
+    },
+    "cmake.configureOnOpen": false,
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "editor.accessibilitySupport": "off",
+    "terminal.integrated.customGlyphs": false,
+    "editor.minimap.enabled": false,
+    "git.ignoreRebaseWarning": true,
+    "terminal.integrated.enableMultiLinePasteWarning": false,
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "terminal.integrated.scrollback": 10000,
+    "extensions.autoCheckUpdates": false,
+    "extensions.autoUpdate": false,
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "python.formatting.provider": "black",
+    "githubPullRequests.pullBranch": "never",
+    "terminal.integrated.env.osx": {
+        "DISPLAY": "127.0.0.1:10.0"
+    },
+    "debug.allowBreakpointsEverywhere": true,
+    "window.commandCenter": false,
+    "editor.stickyScroll.enabled": true,
+    "[python]": {
+        "editor.formatOnType": true,
+        "editor.defaultFormatter": "ms-python.python"
+    },
+    "latex-workshop.linting.chktex.exec.path": "/Library/TeX/texbin/chktex",
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "git.openRepositoryInParentFolders": "always",
+    "[latex]": {
+        "editor.defaultFormatter": "James-Yu.latex-workshop"
+    },
+    "diffEditor.ignoreTrimWhitespace": false,
+    "explorer.confirmDelete": false,
+    "verilog.ctags.path": "D:\\FPGA\\ctags-p5.9.20220116.0\\ctags.exe",
+    "explorer.confirmDragAndDrop": false,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "terminal.external.windowsExec": "C:\\Windows\\System32\\wsl.exe",
+    "terminal.integrated.fontFamily": "monospace",
+    "editor.fontFamily": "SauceCodePro Nerd Font",
+    "[matlab]": {
+        "editor.defaultFormatter": "MathWorks.language-matlab"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "remote.autoForwardPortsSource": "hybrid",
+    "latex-workshop.view.pdf.external.viewer.command": "C:/Users/davidgao/AppData/Local/SumatraPDF/SumatraPDF.exe",
+    "latex-workshop.view.pdf.external.synctex.command": "/Applications/Skim.app/Contents/MacOS/Skim",
+    "highlight.regexes": {
+        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *TODO(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
+            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
+            "decorations": [
+                {
+                    "overviewRulerColor": "#ffcc00",
+                    "backgroundColor": "#ffcc00",
+                    "color": "#1f1f1f",
+                    "fontWeight": "bold"
+                },
+                {
+                    "backgroundColor": "#ffcc00",
+                    "color": "#1f1f1f"
+                }
+            ]
+        },
+        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:FIXME|FIX|BUG|UGLY|DEBUG|HACK)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
+            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
+            "decorations": [
+                {
+                    "overviewRulerColor": "#cc0000",
+                    "backgroundColor": "#cc0000",
+                    "color": "#1f1f1f",
+                    "fontWeight": "bold"
+                },
+                {
+                    "backgroundColor": "#cc0000",
+                    "color": "#1f1f1f"
+                }
+            ]
+        },
+        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:REVIEW|OPTIMIZE|TSC)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
+            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
+            "decorations": [
+                {
+                    "overviewRulerColor": "#00ccff",
+                    "backgroundColor": "#00ccff",
+                    "color": "#1f1f1f",
+                    "fontWeight": "bold"
+                },
+                {
+                    "backgroundColor": "#00ccff",
+                    "color": "#1f1f1f"
+                }
+            ]
+        },
+        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:IDEA)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
+            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
+            "decorations": [
+                {
+                    "overviewRulerColor": "#cc00cc",
+                    "backgroundColor": "#cc00cc",
+                    "color": "#1f1f1f",
+                    "fontWeight": "bold"
+                },
+                {
+                    "backgroundColor": "#cc00cc",
+                    "color": "#1f1f1f"
+                }
+            ]
+        }
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "gitlens.views.commitDetails.files.layout": "list",
+    "explorer.confirmPasteNative": false,
+    "github.copilot.editor.enableAutoCompletions": true,
+    "workbench.editor.wrapTabs": true,
+    "search.useParentIgnoreFiles": true,
+    "zenMode.hideLineNumbers": false,
+    "cursor.cpp.disabledLanguages": [],
+    "gitlens.codeLens.enabled": false,
+    "workbench.colorTheme": "Default Dark+"
+}
