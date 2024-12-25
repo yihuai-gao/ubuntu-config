@@ -398,21 +398,12 @@
         "when": "inDebugMode"
     },
     {
-        "key": "ctrl+shift+k",
-        "command": "workbench.action.terminal.clear"
-    },
-    {
-        "key": "ctrl+shift+\\",
-        "command": "workbench.action.terminal.split",
-        "when": "terminalFocus && terminalProcessSupported || terminalFocus && terminalWebExtensionContributedProfile"
-    },
-    {
         "key": "ctrl+shift+5",
         "command": "-workbench.action.terminal.split",
         "when": "terminalFocus && terminalProcessSupported || terminalFocus && terminalWebExtensionContributedProfile"
     },
     {
-        "key": "ctrl+shift+\\",
+        "key": "ctrl+\\",
         "command": "workbench.action.terminal.splitActiveTab",
         "when": "terminalProcessSupported && terminalTabsFocus"
     },
@@ -760,5 +751,54 @@
         "key": "ctrl+w",
         "command": "aichat.close-sidebar",
         "when": "focusedView == 'workbench.panel.aichat.view'"
+    },
+    {
+        "key": "ctrl+l",
+        "command": "-aichat.newchataction"
+    },
+    {
+        "key": "ctrl+l",
+        "command": "expandLineSelection",
+        "when": "textInputFocus"
+    },
+    {
+        "key": "ctrl+p",
+        "command": "-expandLineSelection",
+        "when": "textInputFocus"
+    },
+    {
+        "key": "ctrl+shift+\\",
+        "command": "-editor.action.jumpToBracket",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+\\",
+        "command": "-workbench.action.terminal.focusTabs",
+        "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported || terminalHasBeenCreated && terminalTabsFocus || terminalProcessSupported && terminalTabsFocus"
+    },
+    {
+        "key": "ctrl+\\",
+        "command": "workbench.action.terminal.splitInActiveWorkspace",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+\\",
+        "command": "-workbench.action.splitEditor"
+    },
+    {
+        "key": "ctrl+shift+\\",
+        "command": "workbench.action.moveEditorToPreviousGroup"
+    },
+    {
+        "key": "ctrl+alt+left",
+        "command": "-workbench.action.moveEditorToPreviousGroup"
+    },
+    {
+        "key": "ctrl+\\",
+        "command": "workbench.action.moveEditorToNextGroup"
+    },
+    {
+        "key": "ctrl+alt+right",
+        "command": "-workbench.action.moveEditorToNextGroup"
     }
 ]
