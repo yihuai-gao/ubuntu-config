@@ -403,7 +403,7 @@
         "when": "terminalFocus && terminalProcessSupported || terminalFocus && terminalWebExtensionContributedProfile"
     },
     {
-        "key": "ctrl+\\",
+        "key": "ctrl+shift+\\",
         "command": "workbench.action.terminal.splitActiveTab",
         "when": "terminalProcessSupported && terminalTabsFocus"
     },
@@ -741,7 +741,8 @@
     },
     {
         "key": "ctrl+w",
-        "command": "workbench.action.closeActiveEditor"
+        "command": "workbench.action.closeActiveEditor",
+        "when": "editorFocus"
     },
     {
         "key": "ctrl+w",
@@ -778,11 +779,6 @@
     },
     {
         "key": "ctrl+\\",
-        "command": "workbench.action.terminal.splitInActiveWorkspace",
-        "when": "terminalFocus"
-    },
-    {
-        "key": "ctrl+\\",
         "command": "-workbench.action.splitEditor"
     },
     {
@@ -800,5 +796,10 @@
     {
         "key": "ctrl+alt+right",
         "command": "-workbench.action.moveEditorToNextGroup"
+    },
+    {
+        "key": "ctrl+shift+\\",
+        "command": "workbench.action.terminal.split",
+        "when": "terminalFocus"
     }
 ]
