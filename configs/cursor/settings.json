@@ -284,7 +284,7 @@
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
     "terminal.external.windowsExec": "C:\\Windows\\System32\\wsl.exe",
-    "terminal.integrated.fontFamily": "monospace",
+    "terminal.integrated.fontFamily": "SauceCodePro Nerd Font",
     "editor.fontFamily": "SauceCodePro Nerd Font",
     "[matlab]": {
         "editor.defaultFormatter": "MathWorks.language-matlab"
@@ -365,8 +365,9 @@
     "github.copilot.editor.enableAutoCompletions": true,
     "workbench.editor.wrapTabs": true,
     "search.useParentIgnoreFiles": true,
-    "zenMode.hideLineNumbers": false,
     "cursor.cpp.disabledLanguages": [],
     "gitlens.codeLens.enabled": false,
-    "workbench.colorTheme": "Default Dark+"
+    "workbench.colorTheme": "Default Dark+",
+    "zenMode.hideLineNumbers": false,
+    "zenMode.centerLayout": false
 }
