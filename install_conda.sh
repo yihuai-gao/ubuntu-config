@@ -16,3 +16,5 @@ $HOME/miniforge3/bin/conda init zsh
 $HOME/miniforge3/bin/conda init bash
 $HOME/miniforge3/bin/mamba init zsh
 $HOME/miniforge3/bin/mamba init bash
+
+$HOME/miniforge3/bin/mamba install -y yazi zoxide fzf ncdu

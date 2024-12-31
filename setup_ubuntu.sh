@@ -23,10 +23,5 @@ echo ".DS_Store
 .vscode" >> ~/.gitignore_global
 git config --global core.excludesfile ~/.gitignore_global
 
-# Install fzf, a command line fuzzy finder, see https://github.com/junegunn/fzf
-$CMD_PREFIX apt-get install fzf -y ||{
-    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-    ~/.fzf/install
-}
 
 

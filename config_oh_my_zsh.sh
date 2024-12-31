@@ -39,8 +39,6 @@ plugins=(
   themes
 )
 source $ZSH/oh-my-zsh.sh
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-export PATH=$PATH:~/.fzf/bin
 export PATH="$HOME/.local/bin:$PATH"
 export EDITOR="vim"
 
@@ -63,6 +61,18 @@ zstyle ":autocomplete:*" delay 0.2  # seconds (float)
 zstyle ":autocomplete:*" min-input 3    # characters
 zstyle ":autocomplete:history-search-backward:*" list-lines 100
 zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 100
+
+eval "$(zoxide init zsh)"
+
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
+
 ' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
