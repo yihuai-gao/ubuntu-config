@@ -62,17 +62,10 @@ zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 100
 
 eval "$(zoxide init zsh)"
 
-function y() {
-	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-	yazi "$@" --cwd-file="$tmp"
-	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-		builtin cd -- "$cwd"
-	fi
-	rm -f -- "$tmp"
-}
+source ~/.zsh_functions
 
 ' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh
-
+cp ./zsh_functions ~/.zsh_functions

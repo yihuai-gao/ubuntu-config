@@ -1,0 +1,48 @@
+
+
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
+
+function rsync_pull() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: rsync_pull <server_name>"
+        return 1
+    fi
+
+    local server="$1"
+    local current_dir=$(basename "$(pwd)")
+    local current_dir_full_path=$(pwd)
+    echo "Pulling from ${server}:${current_dir_full_path}/"
+
+    rsync -rzvP \
+        --exclude-from=<(git ls-files --others --ignored --exclude-standard --directory) \
+        --exclude='third_party' \
+        --exclude='prior_works' \
+        "${server}:${current_dir_full_path}/" \
+        .
+}
+
+function rsync_push() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: rsync_push <server_name>"
+        return 1
+    fi
+
+    local server="$1"
+    local current_dir=$(basename "$(pwd)")
+    local current_dir_full_path=$(pwd)
+    echo "Pushing to ${server}:${current_dir_full_path}/"
+
+    rsync -rzvP \
+        --exclude-from=<(git ls-files --others --ignored --exclude-standard --directory) \
+        --exclude='third_party' \
+        --exclude='prior_works' \
+        . \
+        "${server}:${current_dir_full_path}/"
+}
