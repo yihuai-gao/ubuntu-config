@@ -1,5 +1,3 @@
-#!/bin/zsh
-
 action=$1
 
 # get this file directory even if not cd'd to this directory

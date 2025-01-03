@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # Install plugins for oh-my-zsh
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
@@ -39,7 +37,7 @@ plugins=(
   themes
 )
 source $ZSH/oh-my-zsh.sh
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/usr/bin:$PATH"
 export EDITOR="vim"
 
 # Costomized zsh-autocomplete settings: please refer to https://github.com/marlonrichert/zsh-autocomplete

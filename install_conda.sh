@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # Execute this file after all the other configuration steps.
 # Use mamba (which is the default version in miniforge3) as a replacement for conda.
 # If you want to use mamba, please uninstall your conda environment first.
@@ -16,5 +14,3 @@ $HOME/miniforge3/bin/conda init zsh
 $HOME/miniforge3/bin/conda init bash
 $HOME/miniforge3/bin/mamba init zsh
 $HOME/miniforge3/bin/mamba init bash
-
-$HOME/miniforge3/bin/mamba install -y yazi zoxide fzf ncdu
