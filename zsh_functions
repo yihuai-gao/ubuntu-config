@@ -46,3 +46,5 @@ function rsync_push() {
         . \
         "${server}:${current_dir_full_path}/"
 }
+
+alias c="cursor"
