@@ -16,5 +16,6 @@ cd $file_dir
 
 
 $HOME/miniforge3/bin/mamba install -y yazi
+$HOME/miniforge3/bin/mamba install -y nvitop
 ln -s $HOME/miniforge3/bin/yazi $HOME/.local/usr/bin/yazi
-
+ln -s $HOME/miniforge3/bin/nvitop $HOME/.local/usr/bin/nvitop

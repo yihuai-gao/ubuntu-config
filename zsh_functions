@@ -1,5 +1,3 @@
-
-
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	yazi "$@" --cwd-file="$tmp"
@@ -28,23 +26,5 @@ function rsync_pull() {
         .
 }
 
-function rsync_push() {
-    if [ $# -ne 1 ]; then
-        echo "Usage: rsync_push <server_name>"
-        return 1
-    fi
-
-    local server="$1"
-    local current_dir=$(basename "$(pwd)")
-    local current_dir_full_path=$(pwd)
-    echo "Pushing to ${server}:${current_dir_full_path}/"
-
-    rsync -rzvP \
-        --exclude-from=<(git ls-files --others --ignored --exclude-standard --directory) \
-        --exclude='third_party' \
-        --exclude='prior_works' \
-        . \
-        "${server}:${current_dir_full_path}/"
-}
 
 alias c="cursor"
