@@ -21,6 +21,8 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~
 mv ~/.zshrc ~/.zshrc_bak
 touch ~/.zshrc
 echo '
+export TZ="America/Los_Angeles"
+
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="eastwood"
 
