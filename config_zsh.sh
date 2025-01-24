@@ -53,7 +53,11 @@ bindkey -M menuselect \
     "\\e[C" .forward-char \
     "\\eOC" .forward-char \
     "^[[1;5D" .backward-word \
-    "^[[1;5C" .forward-word
+    "^[[1;5C" .forward-word \
+    "\e[H" .beginning-of-line \
+    "\eOH" .beginning-of-line \
+    "\e[F" .end-of-line \
+    "\eOF" .end-of-line
 
 #   Use Ctrl-Backsbace to kill the word before the cursor
 bindkey "^H" backward-kill-word
