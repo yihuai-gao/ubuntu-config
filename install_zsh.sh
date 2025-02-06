@@ -2,7 +2,7 @@
 
 set -e
 export HOME="/scratch/m000073/yihuai"
-install_dir=${HOME}/.local
+install_dir=${HOME}/.local/bin
 mkdir -p ${install_dir}
 
 file_dir=$(dirname $(realpath $0))

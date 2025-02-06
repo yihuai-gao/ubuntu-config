@@ -68,3 +68,4 @@ function scp_pull() {
 
 alias c="cursor"
 
+alias fg="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
