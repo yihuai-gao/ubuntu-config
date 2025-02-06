@@ -11,11 +11,16 @@ apt download fzf
 apt download zoxide
 apt download ncdu
 apt download neofetch
+apt download sysstat
+apt download fio
+
 
 dpkg-deb -x fzf* $HOME/.local
 dpkg-deb -x zoxide* $HOME/.local
 dpkg-deb -x ncdu* $HOME/.local
 dpkg-deb -x neofetch* $HOME/.local
+dpkg-deb -x sysstat* $HOME/.local
+dpkg-deb -x fio* $HOME/.local
 cd $file_dir
 
 
