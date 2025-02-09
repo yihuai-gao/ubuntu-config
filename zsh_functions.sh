@@ -79,16 +79,20 @@ function compress() {
 
     data_storage_dir=$1
     cpu_cores=$(($(nproc) - 1))
-    tar cf - ${data_storage_dir} | pigz -p ${cpu_cores} > ${data_storage_dir}.tar.gz
+    file_name=$(basename $data_storage_dir)
+    cd $(dirname $data_storage_dir)
+    tar cf - ${file_name} | lz4 -c > ${file_name}.tar.lz4
 }
 
 function decompress() {
     if [ $# -ne 1 ]; then
-        echo "Usage: decompress <data_storage_dir>"
+        echo "Usage: decompress <file_path>"
         return 1
     fi
 
-    data_storage_dir=$1
+    file_path=$1
     cpu_cores=$(($(nproc) - 1))
-    pigz -dc -p ${cpu_cores} ${data_storage_dir}.tar.gz | tar xf -
+    file_name=$(basename $file_path)
+    cd $(dirname $file_path)
+    lz4 -d -c ${file_name} | tar xf -
 }
