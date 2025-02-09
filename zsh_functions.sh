@@ -68,4 +68,27 @@ function scp_pull() {
 
 alias c="cursor"
 
-alias fg="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
+alias fetch_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
+alias fetch_slurm_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_slurm_gpu.py"
+
+function compress() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: compress <data_storage_dir>"
+        return 1
+    fi
+
+    data_storage_dir=$1
+    cpu_cores=$(($(nproc) - 1))
+    tar cf - ${data_storage_dir} | pigz -p ${cpu_cores} > ${data_storage_dir}.tar.gz
+}
+
+function decompress() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: decompress <data_storage_dir>"
+        return 1
+    fi
+
+    data_storage_dir=$1
+    cpu_cores=$(($(nproc) - 1))
+    pigz -dc -p ${cpu_cores} ${data_storage_dir}.tar.gz | tar xf -
+}

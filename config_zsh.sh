@@ -70,10 +70,9 @@ zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 100
 
 eval "$(zoxide init zsh)"
 
-source ~/.zsh_functions
+source $HOME/ubuntu-config/zsh_functions.sh
 
 ' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh
-cp ./zsh_functions ~/.zsh_functions
