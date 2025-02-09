@@ -76,12 +76,13 @@ function compress() {
         echo "Usage: compress <data_storage_dir>"
         return 1
     fi
-
+    current_dir=$(pwd)
     data_storage_dir=$1
     cpu_cores=$(($(nproc) - 1))
     file_name=$(basename $data_storage_dir)
     cd $(dirname $data_storage_dir)
     tar cf - ${file_name} | lz4 -c > ${file_name}.tar.lz4
+    cd $current_dir
 }
 
 function decompress() {
@@ -89,10 +90,11 @@ function decompress() {
         echo "Usage: decompress <file_path>"
         return 1
     fi
-
+    current_dir=$(pwd)
     file_path=$1
     cpu_cores=$(($(nproc) - 1))
     file_name=$(basename $file_path)
     cd $(dirname $file_path)
     lz4 -d -c ${file_name} | tar xf -
+    cd $current_dir
 }
