@@ -98,3 +98,17 @@ function decompress() {
     lz4 -d -c ${file_name} | tar xf -
     cd $current_dir
 }
+
+# get gpu_num gpus
+function sdbg() {
+    if [ $# -ne 1 ]; then
+        gpu_num=1
+    else
+        gpu_num=$1
+    fi
+    srun -N 1 -G $gpu_num -A marlowe-m000073 -p preempt --mem=200G --cpus-per-task=32 --pty zsh
+}
+
+alias sq="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M  %.6D %R'"
+
+alias sc="scancel"
