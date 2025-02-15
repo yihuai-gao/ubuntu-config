@@ -106,7 +106,13 @@ function sdbg() {
     else
         gpu_num=$1
     fi
-    srun -N 1 -G $gpu_num -A marlowe-m000073 -p preempt --mem=200G --cpus-per-task=32 --pty zsh
+    cpu_num=$((($gpu_num)*32))
+    cpu_num=$(($cpu_num > 112 ? 112 : $cpu_num))
+    mem_num=$((($gpu_num)*400))
+    mem_num=$(($mem_num > 1800 ? 1800 : $mem_num))
+    command="srun -N 1 -G $gpu_num -A marlowe-m000073 -p preempt --mem=${mem_num}G --cpus-per-task=$cpu_num --pty zsh"
+    echo $command
+    eval $command
 }
 
 alias sq="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M  %.6D %R'"
