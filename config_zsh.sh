@@ -72,6 +72,9 @@ eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
+export PATH=$PATH:"/cm/local/apps/gcc/13.1.0/bin:/cm/shared/apps/slurm/current/sbin:/cm/shared/apps/slurm/current/bin"
+export SLURM_CONF="/cm/shared/apps/slurm/var/etc/slurm/slurm.conf"
+
 ' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
