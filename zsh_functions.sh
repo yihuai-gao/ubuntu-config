@@ -108,8 +108,10 @@ function sdbg() {
     fi
     cpu_num=$((($gpu_num)*32))
     cpu_num=$(($cpu_num > 112 ? 112 : $cpu_num))
+    cpu_num=$(($cpu_num < 16 ? 16 : $cpu_num))
     mem_num=$((($gpu_num)*400))
     mem_num=$(($mem_num > 1800 ? 1800 : $mem_num))
+    mem_num=$(($mem_num < 100 ? 100 : $mem_num))
     command="srun -N 1 -G $gpu_num -A marlowe-m000073 -p preempt --mem=${mem_num}G --cpus-per-task=$cpu_num --pty zsh"
     echo $command
     eval $command
