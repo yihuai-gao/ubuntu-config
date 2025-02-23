@@ -23,7 +23,8 @@ function rsync_pull() {
 
     local server="$1"
     local current_dir=$(basename "$(pwd)")
-    local current_dir_full_path=$(pwd)
+    local current_dir_full_path="${PWD#$HOME/}"
+
 
     if [ $# -eq 2 ]; then
         local path_name="$2"
@@ -54,15 +55,16 @@ function scp_pull() {
         echo "Usage: scp_pull <server_name> <file_path>"
         return 1
     fi
-    local current_dir_full_path=$(pwd)
+    local current_dir_full_path="${PWD#$HOME/}"
 
     local server="$1"
     local file_path="$2"
 
     local parent_dir=$(dirname "$file_path")
     mkdir -p "$parent_dir"
-
-    scp "${server}:${current_dir_full_path}/${file_path}" $parent_dir
+    cmd="scp ${server}:${current_dir_full_path}/${file_path} $parent_dir"
+    echo $cmd
+    eval $cmd
 }
 
 
