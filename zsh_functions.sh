@@ -103,22 +103,27 @@ function decompress() {
 
 # get gpu_num gpus
 function sdbg() {
-    if [ $# -ne 1 ]; then
+    if [ $# -eq 0 ]; then
         gpu_num=1
-    else
+        node_name="-N 1"
+    elif [ $# -eq 1 ]; then
         gpu_num=$1
+        node_name="-N 1"
+    elif [ $# -eq 2 ]; then
+        gpu_num=$1
+        node_name="--nodelist=$2"
     fi
-    cpu_num=$((($gpu_num)*32))
+    cpu_num=$((($gpu_num)*16))
     cpu_num=$(($cpu_num > 112 ? 112 : $cpu_num))
     cpu_num=$(($cpu_num < 16 ? 16 : $cpu_num))
-    mem_num=$((($gpu_num)*400))
+    mem_num=$((($gpu_num)*200))
     mem_num=$(($mem_num > 1800 ? 1800 : $mem_num))
     mem_num=$(($mem_num < 100 ? 100 : $mem_num))
-    command="srun -N 1 -G $gpu_num -A marlowe-m000073 -p preempt --mem=${mem_num}G --cpus-per-task=$cpu_num --pty zsh"
+    command="salloc $node_name -G $gpu_num -A marlowe-m000073 -p preempt --mem=${mem_num}G --cpus-per-task=$cpu_num --time=02:00:00"
     echo $command
     eval $command
 }
 
-alias sq="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M  %.6D %R'"
-
+alias sqe="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M  %.6D %R'"
+alias sq="squeue"
 alias sc="scancel"
