@@ -113,7 +113,7 @@ function sdbg() {
         gpu_num=$1
         node_name="--nodelist=$2"
     fi
-    cpu_num=$((($gpu_num)*16))
+    cpu_num=$((($gpu_num)*14))
     cpu_num=$(($cpu_num > 112 ? 112 : $cpu_num))
     cpu_num=$(($cpu_num < 16 ? 16 : $cpu_num))
     mem_num=$((($gpu_num)*200))
@@ -124,6 +124,26 @@ function sdbg() {
     eval $command
 }
 
-alias sqe="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M  %.6D %R'"
+function sa() {
+    if [ $# -ne 1 ]; then
+        job_id=$(squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M %.6D %R' | grep RUNNING | awk '{print $1}')
+        if [ -z "$job_id" ]; then
+            echo "No running job found"
+            return 1
+        fi
+        # If there are multiple running jobs, print them and ask for the job id
+        if [ $(echo "$job_id" | wc -l) -gt 1 ]; then
+            echo "Multiple running jobs found:"
+            squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M %.6D %R' | grep RUNNING
+            echo "Please enter the job id:"
+            read job_id
+        fi
+    else
+        job_id=$1
+    fi
+    srun --jobid $job_id --pty zsh
+}
+
+alias sqe="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M %.6D %R'"
 alias sq="squeue"
 alias sc="scancel"
