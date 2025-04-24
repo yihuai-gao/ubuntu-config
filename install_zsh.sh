@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# For Marlowe server
+
 set -e
-export HOME="/scratch/m000073/yihuai"
+export HOME="/scratch/m000073/yihuai" 
 install_dir=${HOME}/.local/bin
 mkdir -p ${install_dir}
 

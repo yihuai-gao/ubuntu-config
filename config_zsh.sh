@@ -1,5 +1,5 @@
 # Install plugins for oh-my-zsh
-HOME="/scratch/m000073/yihuai"
+# HOME="/scratch/m000073/yihuai" # For Marlowe server
 
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
@@ -72,10 +72,11 @@ eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
-export PATH=$PATH:"/cm/local/apps/gcc/13.1.0/bin:/cm/shared/apps/slurm/current/sbin:/cm/shared/apps/slurm/current/bin"
-export SLURM_CONF="/cm/shared/apps/slurm/var/etc/slurm/slurm.conf"
 
 ' >> ~/.zshrc
+# For Marlowe server
+# export PATH=$PATH:"/cm/local/apps/gcc/13.1.0/bin:/cm/shared/apps/slurm/current/sbin:/cm/shared/apps/slurm/current/bin"
+# export SLURM_CONF="/cm/shared/apps/slurm/var/etc/slurm/slurm.conf"
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh
