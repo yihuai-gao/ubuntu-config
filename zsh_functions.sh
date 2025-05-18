@@ -147,3 +147,12 @@ function sa() {
 alias sqe="squeue -u yihuai --format='%.18i %.9P %.30j %.8T %.10M %.6D %R'"
 alias sq="squeue"
 alias sc="scancel"
+
+function calc_lines() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: calc_lines <suffix>"
+        return 1
+    fi
+    suffix=$1
+    find . -name "*.${suffix}" -type f -exec cat {} + | wc -l
+}
