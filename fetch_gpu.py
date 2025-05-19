@@ -6,7 +6,7 @@ from rich.table import Table
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Define your server details
-SERVERS = ["real002", "real003", "real004", "real005", "real006", "real007", "iris-robot-ws-2", "iris-robot-ws-3"]
+SERVERS = ["real002", "real003", "real004", "real005", "real006", "real007"]
 
 OWNERS = {
     "real002": [
