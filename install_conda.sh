@@ -12,5 +12,5 @@ bash Miniforge3-$sys-$arch.sh -b -p ~/miniforge3
 rm Miniforge3-$sys-$arch.sh
 $HOME/miniforge3/bin/conda init zsh
 $HOME/miniforge3/bin/conda init bash
-$HOME/miniforge3/bin/mamba init zsh
-$HOME/miniforge3/bin/mamba init bash
+# $HOME/miniforge3/bin/mamba init zsh
+# $HOME/miniforge3/bin/mamba init bash
