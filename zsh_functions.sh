@@ -182,3 +182,11 @@ function calc_lines() {
 
 alias sal="salloc -N 1 -G 8 -A marlowe-m000073 -p preempt --mem=1600G --cpus-per-task=112"
 alias sr="sreport cluster UserUtilizationByAccount -T gres/gpu Start=2025-05-20T00:00:00 End=now account=Marlowe-m000073-mp01  -t hours"
+
+function port() {
+    lsof -i :$1
+}
+
+function port_kill() {
+    lsof -i :$1 | tail -n +2 | awk '{print $2}' | xargs kill -9
+}
