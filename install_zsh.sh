@@ -31,12 +31,13 @@ cd zsh
 make -j
 make install
 cd .. && rm zsh.tar && rm -r zsh
-echo -e "export SHELL=${install_dir}/bin/zsh\nexec ${install_dir}/bin/zsh -l" >> ~/.bash_profile # or chsh
 
-# # OPTIONAL: install oh-my-zsh
-# sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+# OPTIONAL: install oh-my-zsh
+export PATH=$PATH:/scratch/m000073/$USER/.local/bin
+echo "export PATH=$PATH:/scratch/m000073/$USER/.local/bin" >> /home/$USER/.bashrc
+sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 
-
-# TODO:
-# set FPATH in .zshrc
+# TODO: copy the following lines in $HOME/.zshrc, where $HOME should be /scratch/m000073/$USER
+# export HOME="/scratch/m000073/$USER" 
 # export FPATH="$HOME/.local/share/zsh/5.9/functions:$FPATH"
+# export PATH=$PATH:/scratch/m000073/$USER/.local/bin
