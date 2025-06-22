@@ -3,8 +3,8 @@
 # For Marlowe server
 
 set -e
-export HOME="/scratch/m000073/yihuai" 
-install_dir=${HOME}/.local/bin
+export HOME="/scratch/m000073/$USER" 
+install_dir=${HOME}/.local
 mkdir -p ${install_dir}
 
 file_dir=$(dirname $(realpath $0))

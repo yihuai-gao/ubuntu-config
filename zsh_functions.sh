@@ -180,8 +180,9 @@ function calc_lines() {
     find . -name "*.${suffix}" -type f -exec cat {} + | wc -l
 }
 
-alias sal="salloc -N 1 -G 8 -A marlowe-m000073 -p preempt --mem=1600G --cpus-per-task=112"
-alias sr="sreport cluster UserUtilizationByAccount -T gres/gpu Start=2025-05-20T00:00:00 End=now account=Marlowe-m000073-mp01  -t hours"
+alias sal="salloc -N 1 -G 8 -A marlowe-m000073 -p preempt --mem=1600G --cpus-per-task=112 --time=12:00:00"
+alias salb="salloc -N 1 -G 8 -A marlowe-m000073-pm01 -p batch --mem=1600G --cpus-per-task=112 --time=12:00:00"
+alias sr="sreport cluster UserUtilizationByAccount -T gres/gpu Start=2025-05-20T00:00:00 End=now account=Marlowe-m000073-pm01  -t hours"
 
 function port() {
     lsof -i :$1
