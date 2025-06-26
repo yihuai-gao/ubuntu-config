@@ -69,6 +69,7 @@ function scp_pull() {
 
 
 alias c="cursor"
+alias hn="hostname"
 
 alias fetch_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
 alias fetch_slurm_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_slurm_gpu.py"
@@ -100,6 +101,12 @@ function decompress() {
     lz4 -d -c ${file_name} | tar xf -
     cd $current_dir
 }
+
+
+
+
+#### SLURM related ####
+
 
 # get gpu_num gpus
 function sdbg() {
@@ -182,6 +189,7 @@ function calc_lines() {
 
 alias sal="salloc -N 1 -G 8 -A marlowe-m000073 -p preempt --mem=1600G --cpus-per-task=112 --time=12:00:00"
 alias salb="salloc -N 1 -G 8 -A marlowe-m000073-pm01 -p batch --mem=1600G --cpus-per-task=112 --time=12:00:00"
+alias salb2="salloc -N 1 -G 8 -A marlowe-m000073-pm01 -p batch --mem=1600G --cpus-per-task=112 --time=2:00:00"
 alias sr="sreport cluster UserUtilizationByAccount -T gres/gpu Start=2025-05-20T00:00:00 End=now account=Marlowe-m000073-pm01  -t hours"
 
 function port() {
