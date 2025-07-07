@@ -23,6 +23,7 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~
 mv ~/.zshrc ~/.zshrc_bak
 touch ~/.zshrc
 echo '
+export PATH=$PATH:${HOME}/.local/bin
 export TZ="America/Los_Angeles"
 
 export ZSH="$HOME/.oh-my-zsh"
@@ -72,11 +73,11 @@ eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
+## For SLURM systems
+# source /etc/profile.d/modules.sh
+# module load slurm
 
 ' >> ~/.zshrc
-# For Marlowe server
-# export PATH=$PATH:"/cm/local/apps/gcc/13.1.0/bin:/cm/shared/apps/slurm/current/sbin:/cm/shared/apps/slurm/current/bin"
-# export SLURM_CONF="/cm/shared/apps/slurm/var/etc/slurm/slurm.conf"
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 cp ./p10k.zsh ~/.p10k.zsh

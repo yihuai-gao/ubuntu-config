@@ -3,7 +3,7 @@
 # For Marlowe server
 
 set -e
-export HOME="/scratch/m000073/$USER" 
+# export HOME="/scratch/m000073/$USER" 
 install_dir=${HOME}/.local
 mkdir -p ${install_dir}
 
@@ -33,8 +33,9 @@ make install
 cd .. && rm zsh.tar && rm -r zsh
 
 # OPTIONAL: install oh-my-zsh
-export PATH=$PATH:/scratch/m000073/$USER/.local/bin
-echo "export PATH=$PATH:/scratch/m000073/$USER/.local/bin" >> /home/$USER/.bashrc
+# export PATH=$PATH:/scratch/m000073/$USER/.local/bin
+# echo "export PATH=$PATH:/scratch/m000073/$USER/.local/bin" >> /home/$USER/.bashrc
+export PATH=$PATH:${install_dir}/bin
 sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 
 # TODO: copy the following lines in $HOME/.zshrc, where $HOME should be /scratch/m000073/$USER
