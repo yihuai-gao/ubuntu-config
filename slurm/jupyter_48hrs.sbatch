@@ -21,7 +21,7 @@ export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 export WORLD_SIZE=$(($SLURM_NNODES * $SLURM_NTASKS_PER_NODE))
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export SLURM_LOG_DIR=/project/cosmos/yihuaig/logs/debug/yihuaig_jupyter/$SLURM_JOB_ID
-
+export HOST_USER_ID=$(id -u)
 echo "Nodelist="$SLURM_JOB_NODELIST
 echo "MASTER_PORT="$MASTER_PORT
 echo "WORLD_SIZE="$WORLD_SIZE
@@ -31,5 +31,5 @@ mkdir -p $SLURM_LOG_DIR/env
 env > $SLURM_LOG_DIR/env/sbatch_env.sh
 
 export DOCKER_PATH=nvcr.io/nvidian/imaginaire4:v10.1.0_egl_fix
-srun --container-image=${DOCKER_PATH} --container-mounts /project/cosmos:/project/cosmos:rw,/run/user/${UID}:/run/user/${UID}:rw,/home/yihuaig:/home/yihuaig:rw \
+srun --container-image=${DOCKER_PATH} --container-mounts /project/cosmos:/project/cosmos:rw,/home/yihuaig:/home/yihuaig:rw \
    bash -c 'LOCAL_RANK=$SLURM_LOCALID; env >> ${SLURM_LOG_DIR}/env/${SLURM_PROCID}.sh 2>&1; ulimit -c 0; export LD_LIBRARY_PATH=/opt/amazon/openmpi/lib:/opt/nccl/build/lib:/opt/amazon/efa/lib:/opt/aws-ofi-nccl/install/lib:/usr/local/lib:$LD_LIBRARY_PATH; export WANDB_ENTITY=nvidia-dir; export TORCH_NCCL_ENABLE_MONITORING=0; export TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC=1800; export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; export IMAGINAIRE_OUTPUT_ROOT=/project/cosmos/yihuaig/imaginaire4-output; export HOST_IP=$(python -c "import socket;print(socket.gethostbyname(socket.gethostname()))"); printf "%-50s %-20s %s\n" "${SLURM_JOB_NAME}" "${SLURM_JOBID}" "$HOST_IP:$MASTER_PORT" >> "${SLURM_LOG_DIR}/jupyter.txt"; printf "%-50s %-20s %s\n" "${SLURM_JOB_NAME}" "${SLURM_JOBID}" "$HOST_IP:$MASTER_PORT" >> "$HOME/jupyter.txt"; jupyter lab --allow-root --ip=0.0.0.0 --port=$MASTER_PORT --no-browser --NotebookApp.token="" --notebook-dir=/project/cosmos/yihuaig --NotebookApp.allow_origin="*" >> ${SLURM_LOG_DIR}/log_${SLURM_PROCID}.txt 2>&1'

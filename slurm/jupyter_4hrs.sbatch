@@ -23,6 +23,7 @@ export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 export WORLD_SIZE=$(($SLURM_NNODES * $SLURM_NTASKS_PER_NODE))
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export SLURM_LOG_DIR=/project/cosmos/yihuaig/jupyter_jobs/$SLURM_JOB_ID
+export HOST_USER_ID=$(id -u)
 
 echo "Nodelist="$SLURM_JOB_NODELIST
 echo "MASTER_PORT="$MASTER_PORT
