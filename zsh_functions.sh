@@ -70,6 +70,7 @@ function scp_pull() {
 
 alias c="cursor"
 alias hn="hostname"
+alias ncdu="ncdu -t8"
 
 alias fetch_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
 alias fetch_slurm_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_slurm_gpu.py"
