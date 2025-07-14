@@ -198,7 +198,9 @@
         "Kalman": "linux",
         "Go2": "linux",
         "OrinNX": "linux",
-        "Turing": "linux"
+        "Turing": "linux",
+        "localhost": "linux",
+        "IAD": "linux"
     },
     "diffEditor.wordWrap": "off",
     "screencastMode.fontSize": 30,
@@ -228,7 +230,7 @@
         "ms-vscode-remote.remote-wsl",
         "ms-vscode-remote.remote-containers"
     ],
-    "python.languageServer": "Default",
+    "python.languageServer": "None",
     "debug.inlineValues": true,
     "git.confirmSync": false,
     "python.analysis.completeFunctionParens": true,
@@ -253,7 +255,7 @@
     "python.analysis.extraPaths": [
         "/opt/ros/melodic/lib/python2.7/dist-packages"
     ],
-    "terminal.integrated.scrollback": 10000,
+    "terminal.integrated.scrollback": 100000,
     "extensions.autoCheckUpdates": false,
     "extensions.autoUpdate": false,
     "[json]": {
@@ -365,7 +367,11 @@
     "github.copilot.editor.enableAutoCompletions": true,
     "workbench.editor.wrapTabs": true,
     "search.useParentIgnoreFiles": true,
-    "cursor.cpp.disabledLanguages": [],
+    "cursor.cpp.disabledLanguages": [
+        "yaml",
+        "plaintext",
+        "markdown"
+    ],
     "gitlens.codeLens.enabled": false,
     "workbench.colorTheme": "Default Dark+",
     "zenMode.hideLineNumbers": false,

@@ -252,7 +252,7 @@
     {
         "key": "ctrl+shift+e",
         "command": "editor.debug.action.selectionToRepl",
-        "when": "inDebugMode"
+        "when": "inDebugMode  && editorHasSelection"
     },
     {
         "key": "alt+meta+1",
@@ -493,7 +493,7 @@
     {
         "key": "ctrl+shift+e",
         "command": "workbench.view.explorer",
-        "when": "viewContainer.workbench.view.explorer.enabled && !inDebugMode"
+        "when": "viewContainer.workbench.view.explorer.enabled && !(inDebugMode && editorHasSelection)"
     },
     {
         "key": "ctrl+shift+e",
