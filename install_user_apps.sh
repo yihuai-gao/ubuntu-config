@@ -29,5 +29,5 @@ $HOME/miniforge3/bin/mamba install -y yazi
 $HOME/miniforge3/bin/mamba install -y nvitop
 
 mkdir -p $HOME/.local/usr/bin
-ln -s $HOME/miniforge3/bin/yazi $HOME/.local/usr/bin/yazi
-ln -s $HOME/miniforge3/bin/nvitop $HOME/.local/usr/bin/nvitop
+ln -s $CONDA_PREFIX/bin/yazi $HOME/.local/usr/bin/yazi
+ln -s $CONDA_PREFIX/bin/nvitop $HOME/.local/usr/bin/nvitop
