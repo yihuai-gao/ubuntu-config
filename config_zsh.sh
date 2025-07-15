@@ -77,6 +77,11 @@ source $HOME/ubuntu-config/zsh_functions.sh
 # source /etc/profile.d/modules.sh
 # module load slurm
 
+# Disable prompting for completion (unless > 1000 completions)
+zstyle ':completion:*' list-prompt 'At %p: Hit TAB for more, or type a name'
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*' completions 1000
+
 ' >> ~/.zshrc
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.

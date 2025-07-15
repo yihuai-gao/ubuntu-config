@@ -9,8 +9,8 @@
 #SBATCH --account=dir_cosmos_misc
 #SBATCH --exclusive
 #SBATCH --gres=gpu:8
-#SBATCH --output=/project/cosmos/yihuaig/logs/debug/yihuaig_jupyter/%j/job.out
-#SBATCH --error=/project/cosmos/yihuaig/logs/debug/yihuaig_jupyter/%j/job.err
+#SBATCH --output=/project/cosmos/yihuaig/jupyter_jobs/%j/job.out
+#SBATCH --error=/project/cosmos/yihuaig/jupyter_jobs/%j/job.err
 #SBATCH --exclude=pool0-0023,pool0-0006,pool0-0028,pool0-0002
 #SBATCH --requeue
 
@@ -20,7 +20,7 @@
 export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 export WORLD_SIZE=$(($SLURM_NNODES * $SLURM_NTASKS_PER_NODE))
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-export SLURM_LOG_DIR=/project/cosmos/yihuaig/logs/debug/yihuaig_jupyter/$SLURM_JOB_ID
+export SLURM_LOG_DIR=/project/cosmos/yihuaig/jupyter_jobs/$SLURM_JOB_ID
 export HOST_USER_ID=$(id -u)
 echo "Nodelist="$SLURM_JOB_NODELIST
 echo "MASTER_PORT="$MASTER_PORT

@@ -3,8 +3,8 @@ file_dir=$(dirname $(realpath $0))
 alias sdbg4="sbatch $file_dir/jupyter_4hrs.sbatch"
 alias sdbg48="sbatch $file_dir/jupyter_48hrs.sbatch"
 
-alias sqe="squeue -u $USER --format='%.10i %.20P %.30j %.8T %.10M %.6D %R'"
-alias sq="squeue  --format='%.10i %.20P %.30j %.8T %.10M %.6D %R'"
+alias sqe="squeue -u $USER --format='%.15i %.20P %.30j %.8T %.10M %.6D %R'"
+alias sq="squeue  --format='%.15i %.20P %.30j %.8T %.10M %.6D %R'"
 alias sc="scancel --signal=KILL"
 
 jupyter_addr() {
