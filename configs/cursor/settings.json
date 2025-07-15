@@ -199,8 +199,9 @@
         "Go2": "linux",
         "OrinNX": "linux",
         "Turing": "linux",
+        "IAD": "linux",
         "localhost": "linux",
-        "IAD": "linux"
+        "PDX": "linux"
     },
     "diffEditor.wordWrap": "off",
     "screencastMode.fontSize": 30,
@@ -367,13 +368,22 @@
     "github.copilot.editor.enableAutoCompletions": true,
     "workbench.editor.wrapTabs": true,
     "search.useParentIgnoreFiles": true,
-    "cursor.cpp.disabledLanguages": [
-        "yaml",
-        "plaintext",
-        "markdown"
-    ],
+    "cursor.cpp.disabledLanguages": [],
     "gitlens.codeLens.enabled": false,
     "workbench.colorTheme": "Default Dark+",
     "zenMode.hideLineNumbers": false,
-    "zenMode.centerLayout": false
+    "zenMode.centerLayout": false,
+    "gitlens.views.scm.grouped.views": {
+        "commits": true,
+        "branches": true,
+        "remotes": true,
+        "stashes": true,
+        "tags": true,
+        "worktrees": true,
+        "contributors": true,
+        "fileHistory": false,
+        "repositories": true,
+        "searchAndCompare": false,
+        "launchpad": false
+    }
 }

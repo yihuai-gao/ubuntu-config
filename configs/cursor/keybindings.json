@@ -801,5 +801,21 @@
         "key": "ctrl+shift+\\",
         "command": "workbench.action.terminal.split",
         "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+m ctrl+\\",
+        "command": "-workbench.action.splitEditorDown"
+    },
+    {
+        "key": "ctrl+m ctrl+\\",
+        "command": "-workbench.action.splitEditorLeft"
+    },
+    {
+        "key": "ctrl+m ctrl+\\",
+        "command": "-workbench.action.splitEditorOrthogonal"
+    },
+    {
+        "key": "ctrl+m ctrl+\\",
+        "command": "-workbench.action.splitEditorUp"
     }
 ]
