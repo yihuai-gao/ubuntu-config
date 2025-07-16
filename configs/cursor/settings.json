@@ -120,10 +120,8 @@
         "\"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code/Code.exe\" \"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\out\\cli.js\" -r -g \"%f:%l\"",
         "%PDF%"
     ],
-    "latex-workshop.synctex.synctexjs.enabled": true,
     "latex-workshop.synctex.afterBuild.enabled": true,
     "C_Cpp.clang_format_style": "Microsoft",
-    "verilog-format.path": "D:\\gyh\\verilog-format-1.0.1\\bin",
     "C_Cpp.updateChannel": "Insiders",
     "workbench.editorAssociations": {
         "*.svg": "default",
@@ -158,7 +156,6 @@
         "*.lsf": "matlab"
     },
     "files.autoGuessEncoding": true,
-    "arduino.path": "C:\\Program Files (x86)\\Arduino",
     "editor.wordWrapColumn": 8,
     "editor.snippetSuggestions": "top",
     "settingsSync.ignoredSettings": [
@@ -232,17 +229,9 @@
         "ms-vscode-remote.remote-containers"
     ],
     "python.languageServer": "None",
-    "debug.inlineValues": true,
+    "debug.inlineValues": false,
     "git.confirmSync": false,
-    "python.analysis.completeFunctionParens": true,
-    "matlab-formatter.pythonPath": "D:\\\\ProgramFiles\\\\Anaconda\\\\python.exe",
     "editor.inlineSuggest.enabled": true,
-    "github.copilot.enable": {
-        "*": true,
-        "yaml": false,
-        "plaintext": false,
-        "markdown": false
-    },
     "cmake.configureOnOpen": false,
     "terminal.integrated.defaultProfile.linux": "zsh",
     "editor.accessibilitySupport": "off",
@@ -250,12 +239,6 @@
     "editor.minimap.enabled": false,
     "git.ignoreRebaseWarning": true,
     "terminal.integrated.enableMultiLinePasteWarning": false,
-    "python.autoComplete.extraPaths": [
-        "/opt/ros/melodic/lib/python2.7/dist-packages"
-    ],
-    "python.analysis.extraPaths": [
-        "/opt/ros/melodic/lib/python2.7/dist-packages"
-    ],
     "terminal.integrated.scrollback": 100000,
     "extensions.autoCheckUpdates": false,
     "extensions.autoUpdate": false,
@@ -263,7 +246,6 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
     "python.formatting.provider": "black",
-    "githubPullRequests.pullBranch": "never",
     "terminal.integrated.env.osx": {
         "DISPLAY": "127.0.0.1:10.0"
     },
@@ -282,7 +264,6 @@
     },
     "diffEditor.ignoreTrimWhitespace": false,
     "explorer.confirmDelete": false,
-    "verilog.ctags.path": "D:\\FPGA\\ctags-p5.9.20220116.0\\ctags.exe",
     "explorer.confirmDragAndDrop": false,
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
@@ -296,76 +277,13 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "remote.autoForwardPortsSource": "hybrid",
-    "latex-workshop.view.pdf.external.viewer.command": "C:/Users/davidgao/AppData/Local/SumatraPDF/SumatraPDF.exe",
-    "latex-workshop.view.pdf.external.synctex.command": "/Applications/Skim.app/Contents/MacOS/Skim",
-    "highlight.regexes": {
-        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *TODO(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
-            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
-            "decorations": [
-                {
-                    "overviewRulerColor": "#ffcc00",
-                    "backgroundColor": "#ffcc00",
-                    "color": "#1f1f1f",
-                    "fontWeight": "bold"
-                },
-                {
-                    "backgroundColor": "#ffcc00",
-                    "color": "#1f1f1f"
-                }
-            ]
-        },
-        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:FIXME|FIX|BUG|UGLY|DEBUG|HACK)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
-            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
-            "decorations": [
-                {
-                    "overviewRulerColor": "#cc0000",
-                    "backgroundColor": "#cc0000",
-                    "color": "#1f1f1f",
-                    "fontWeight": "bold"
-                },
-                {
-                    "backgroundColor": "#cc0000",
-                    "color": "#1f1f1f"
-                }
-            ]
-        },
-        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:REVIEW|OPTIMIZE|TSC)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
-            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
-            "decorations": [
-                {
-                    "overviewRulerColor": "#00ccff",
-                    "backgroundColor": "#00ccff",
-                    "color": "#1f1f1f",
-                    "fontWeight": "bold"
-                },
-                {
-                    "backgroundColor": "#00ccff",
-                    "color": "#1f1f1f"
-                }
-            ]
-        },
-        "((?:<!-- *)?(?:#|// @|//|./\\*+|<!--|--|\\* @|{!|{{!--|{{!) *(?:IDEA)(?:\\s*\\([^)]+\\))?:?)((?!\\w)(?: *-->| *\\*/| *!}| *--}}| *}}|(?= *(?:[^:]//|/\\*+|<!--|@|--|{!|{{!--|{{!))|(?: +[^\\n@]*?)(?= *(?:[^:]//|/\\*+|<!--|@|--(?!>)|{!|{{!--|{{!))|(?: +[^@\\n]+)?))": {
-            "filterFileRegex": ".*(?<!CHANGELOG.md)$",
-            "decorations": [
-                {
-                    "overviewRulerColor": "#cc00cc",
-                    "backgroundColor": "#cc00cc",
-                    "color": "#1f1f1f",
-                    "fontWeight": "bold"
-                },
-                {
-                    "backgroundColor": "#cc00cc",
-                    "color": "#1f1f1f"
-                }
-            ]
-        }
-    },
+    // "latex-workshop.view.pdf.external.viewer.command": "C:/Users/davidgao/AppData/Local/SumatraPDF/SumatraPDF.exe",
+    // "latex-workshop.view.pdf.external.synctex.command": "/Applications/Skim.app/Contents/MacOS/Skim",
     "[cpp]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     "gitlens.views.commitDetails.files.layout": "list",
     "explorer.confirmPasteNative": false,
-    "github.copilot.editor.enableAutoCompletions": true,
     "workbench.editor.wrapTabs": true,
     "search.useParentIgnoreFiles": true,
     "cursor.cpp.disabledLanguages": [],
@@ -373,17 +291,5 @@
     "workbench.colorTheme": "Default Dark+",
     "zenMode.hideLineNumbers": false,
     "zenMode.centerLayout": false,
-    "gitlens.views.scm.grouped.views": {
-        "commits": true,
-        "branches": true,
-        "remotes": true,
-        "stashes": true,
-        "tags": true,
-        "worktrees": true,
-        "contributors": true,
-        "fileHistory": false,
-        "repositories": true,
-        "searchAndCompare": false,
-        "launchpad": false
-    }
+
 }
