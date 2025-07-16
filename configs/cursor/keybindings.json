@@ -501,7 +501,7 @@
         "when": "viewContainer.workbench.view.explorer.enabled"
     },
     {
-        "key": "ctrl+shift+q",
+        "key": "ctrl+shift+w",
         "command": "workbench.action.debug.stepOver",
         "when": "inDebugMode && debugState == 'stopped'"
     },
@@ -817,5 +817,58 @@
     {
         "key": "ctrl+m ctrl+\\",
         "command": "-workbench.action.splitEditorUp"
+    },
+    {
+        "key": "ctrl+shift+q",
+        "command": "workbench.action.debug.continue",
+        "when": "inDebugMode && debugState == 'stopped'"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-editor.action.inlineDiffs.acceptPartialEdit",
+        "when": "editorHasPromptBar && editorPromptBarFocused"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-editor.action.inlineDiffs.acceptPartialEdit",
+        "when": "editorTextFocus && @inlineDiffs.acceptPartialEdit.isActiveEditorWithDiffs"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-aichat.newfollowupaction"
+    },
+    {
+        "key": "ctrl+y",
+        "command": "-redo"
+    },
+    {
+        "key": "ctrl+shift+y",
+        "command": "workbench.debug.action.toggleRepl",
+        "when": "inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+alt+y",
+        "command": "-workbench.debug.action.toggleRepl",
+        "when": "workbench.panel.repl.view.active"
+    },
+    {
+        "key": "ctrl+m y",
+        "command": "-notebook.cell.toggleOutputScrolling",
+        "when": "notebookCellHasOutputs && notebookCellListFocused && !inputFocus"
+    },
+    {
+        "key": "ctrl+shift+y",
+        "command": "-editor.action.inlineDiffs.acceptPartialEdit",
+        "when": "editorHasPromptBar && editorPromptBarFocused"
+    },
+    {
+        "key": "ctrl+shift+d",
+        "command": "workbench.debug.action.focusCallStackView",
+        "when": "inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+a",
+        "command": "workbench.action.debug.callStackTop",
+        "when": "inDebugMode"
     }
 ]
