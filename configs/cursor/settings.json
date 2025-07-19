@@ -251,7 +251,6 @@
     },
     "debug.allowBreakpointsEverywhere": true,
     "window.commandCenter": false,
-    "editor.stickyScroll.enabled": true,
     "[python]": {
         "editor.formatOnType": true,
         "editor.defaultFormatter": "ms-python.python"
@@ -291,5 +290,9 @@
     "workbench.colorTheme": "Default Dark+",
     "zenMode.hideLineNumbers": false,
     "zenMode.centerLayout": false,
+    "terminal.integrated.stickyScroll.enabled": true,
+    "notebook.stickyScroll.enabled": true,
+    "editor.stickyScroll.defaultModel": "indentationModel",
+    "debug.onTaskErrors": "abort",
 
 }

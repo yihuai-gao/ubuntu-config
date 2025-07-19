@@ -154,9 +154,9 @@
         "when": "workbench.scm.active && !gitlens:disabled && config.gitlens.keymap == 'chorded'"
     },
     {
-        "key": "ctrl+shift+g g",
+        "key": "ctrl+shift+g",
         "command": "workbench.view.scm",
-        "when": "workbench.scm.active"
+        "when": "workbench.scm.active && !inDebugMode"
     },
     {
         "key": "ctrl+shift+g",
@@ -862,13 +862,83 @@
         "when": "editorHasPromptBar && editorPromptBarFocused"
     },
     {
-        "key": "ctrl+shift+d",
-        "command": "workbench.debug.action.focusCallStackView",
+        "key": "ctrl+shift+a",
+        "command": "workbench.action.debug.callStackTop",
         "when": "inDebugMode"
     },
     {
-        "key": "ctrl+shift+a",
-        "command": "workbench.action.debug.callStackTop",
+        "key": "ctrl+shift+g /",
+        "command": "-gitlens.gitCommands",
+        "when": "!gitlens:disabled && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g .",
+        "command": "-gitlens.diffWithNext",
+        "when": "editorTextFocus && gitlens:enabled && config.gitlens.keymap == 'chorded' && resourceScheme =~ /^(gitlens|git|pr)$/"
+    },
+    {
+        "key": "ctrl+shift+g ,",
+        "command": "-gitlens.diffWithPrevious",
+        "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && resource in 'gitlens:tabs:tracked'"
+    },
+    {
+        "key": "ctrl+shift+g shift+[IntlBackslash]",
+        "command": "-gitlens.diffWithWorking",
+        "when": "editorTextFocus && gitlens:enabled && config.gitlens.keymap == 'chorded' && resourceScheme =~ /^(gitlens|git|pr)$/"
+    },
+    {
+        "key": "ctrl+shift+g shift+.",
+        "command": "-gitlens.diffWithWorking",
+        "when": "editorTextFocus && gitlens:enabled && config.gitlens.keymap == 'chorded' && resourceScheme =~ /^(gitlens|git|pr)$/"
+    },
+    {
+        "key": "ctrl+shift+g [IntlBackslash]",
+        "command": "-gitlens.diffLineWithPrevious",
+        "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && resource in 'gitlens:tabs:tracked'"
+    },
+    {
+        "key": "ctrl+shift+g shift+,",
+        "command": "-gitlens.diffLineWithPrevious",
+        "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && resource in 'gitlens:tabs:tracked'"
+    },
+    {
+        "key": "ctrl+shift+g c",
+        "command": "-gitlens.showQuickCommitFileDetails",
+        "when": "editorTextFocus && !gitlens:disabled && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g shift+h",
+        "command": "-gitlens.showQuickRepoHistory",
+        "when": "!gitlens:disabled && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g h",
+        "command": "-gitlens.showQuickFileHistory",
+        "when": "!gitlens:disabled && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g s",
+        "command": "-gitlens.showQuickRepoStatus",
+        "when": "!gitlens:disabled && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g b",
+        "command": "-gitlens.toggleFileBlame",
+        "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && resource in 'gitlens:tabs:blameable'"
+    },
+    {
+        "key": "ctrl+shift+g shift+b",
+        "command": "-gitlens.toggleCodeLens",
+        "when": "editorTextFocus && !gitlens:disabled && !gitlens:disabledToggleCodeLens && config.gitlens.keymap == 'chorded'"
+    },
+    {
+        "key": "ctrl+shift+g",
+        "command": "-workbench.action.terminal.openDetectedLink",
+        "when": "accessibleViewIsShown && terminalHasBeenCreated && accessibleViewCurrentProviderId == 'terminal'"
+    },
+    {
+        "key": "ctrl+shift+g",
+        "command": "workbench.view.debug",
         "when": "inDebugMode"
     }
 ]
