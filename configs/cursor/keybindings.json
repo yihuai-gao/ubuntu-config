@@ -842,7 +842,7 @@
         "command": "-redo"
     },
     {
-        "key": "ctrl+shift+y",
+        "key": "ctrl+shift+j",
         "command": "workbench.debug.action.toggleRepl",
         "when": "inDebugMode"
     },
@@ -1149,5 +1149,20 @@
         "key": "ctrl+enter",
         "command": "-workbench.action.terminal.chat.runFirstCommand",
         "when": "terminalChatResponseContainsMultipleCodeBlocks && terminalHasBeenCreated && !terminalChatActiveRequest || terminalChatResponseContainsMultipleCodeBlocks && terminalProcessSupported && !terminalChatActiveRequest"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "-aiSettings.action.open",
+        "when": "!isSettingsPaneOpen"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "-aiSettings.action.openhidden",
+        "when": "!isSettingsPaneOpen"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "-workbench.action.search.toggleQueryDetails",
+        "when": "inSearchEditor || searchViewletFocus"
     }
 ]
