@@ -683,11 +683,6 @@
     },
     {
         "key": "ctrl+shift+z",
-        "command": "redo",
-        "when": "!inDebugMode"
-    },
-    {
-        "key": "ctrl+shift+z",
         "command": "-redo"
     },
     {
@@ -1164,5 +1159,9 @@
         "key": "ctrl+shift+j",
         "command": "-workbench.action.search.toggleQueryDetails",
         "when": "inSearchEditor || searchViewletFocus"
+    },
+    {
+        "key": "ctrl+shift+z",
+        "command": "redo"
     }
 ]
