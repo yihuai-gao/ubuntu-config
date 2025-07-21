@@ -940,5 +940,214 @@
         "key": "ctrl+shift+g",
         "command": "workbench.view.debug",
         "when": "inDebugMode"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-cursorai.action.acceptAndRunGenerateInTerminal",
+        "when": "terminalFocus && terminalHasBeenCreated || terminalProcessSupported && @terminal.acceptAndRunPromptBarEnabled"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-notebook.cell.insertCodeCellAbove",
+        "when": "notebookCellListFocused && !inputFocus"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-notebook.cell.insertCodeCellBelow",
+        "when": "notebookCellListFocused && !inputFocus && notebookChatOuterFocusPosition == ''"
+    },
+    {
+        "key": "ctrl+m enter",
+        "command": "-workbench.action.keepEditor"
+    },
+    {
+        "key": "ctrl+m shift+enter",
+        "command": "-workbench.action.pinEditor",
+        "when": "!activeEditorIsPinned"
+    },
+    {
+        "key": "ctrl+m shift+enter",
+        "command": "-workbench.action.unpinEditor",
+        "when": "activeEditorIsPinned"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-acceptRenameInputWithPreview",
+        "when": "config.editor.rename.enablePreview && editorFocus && renameInputVisible && !isComposing"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-breadcrumbs.revealFocused",
+        "when": "breadcrumbsActive && breadcrumbsVisible"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-breadcrumbs.revealFocusedFromTreeAside",
+        "when": "breadcrumbsActive && breadcrumbsVisible && listFocus && !inputFocus && !treestickyScrollFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-chat.inlineResourceAnchor.openToSide",
+        "when": "chatAttachmentResource"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-chatEditing.acceptAllFiles",
+        "when": "hasUndecidedChatEditingResource && inChatInput && !chatSessionRequestInProgress && chatLocation == 'editing-session'"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-debug.openBreakpointToSide",
+        "when": "breakpointsFocused"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-editor.action.replaceAll",
+        "when": "editorFocus && findWidgetVisible"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-editor.action.submitComment",
+        "when": "commentEditorFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-explorer.openToSide",
+        "when": "explorerViewletFocus && foldersViewVisible && !inputFocus"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-interactive.execute",
+        "when": "isCompositeNotebook && activeEditor == 'workbench.editor.interactive'"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-list.toggleSelection",
+        "when": "listFocus && !inputFocus && !treestickyScrollFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-notebook.cell.chat.acceptChanges",
+        "when": "inlineChatFocused && notebookCellChatFocused && !notebookCellEditorFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-notebook.cell.chat.acceptChanges",
+        "when": "notebookEditorFocused && !inputFocus && !notebookCellEditorFocused && notebookChatOuterFocusPosition == 'below'"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-openReferenceToSide",
+        "when": "listFocus && referenceSearchVisible && !inputFocus && !treeElementCanCollapse && !treeElementCanExpand && !treestickyScrollFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-previewSelectedCodeAction",
+        "when": "codeActionMenuVisible"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-problems.action.openToSide",
+        "when": "problemFocus"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-refactorPreview.apply",
+        "when": "refactorPreview.enabled && refactorPreview.hasCheckedChanges && focusedView == 'refactorPreview'"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-repl.execute",
+        "when": "isCompositeNotebook && activeEditor == 'workbench.editor.repl'"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-scm.acceptInput",
+        "when": "scmRepository"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-search.action.openResultToSide",
+        "when": "fileMatchOrMatchFocus && searchViewletVisible"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-search.action.replaceAll",
+        "when": "replaceActive && searchViewletVisible && !findWidgetVisible"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-search.action.replaceAllInFile",
+        "when": "fileMatchFocus && isEditableItem && replaceActive && searchViewletVisible"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-search.action.replaceAllInFolder",
+        "when": "folderMatchFocus && isEditableItem && replaceActive && searchViewletVisible"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-workbench.action.chat.sendToChatEditing",
+        "when": "chatEditingParticipantRegistered && chatInputHasText && chatIsEnabled && !chatInputHasAgent && !chatSessionRequestInProgress && chatLocation != 'editing-session' && chatLocation != 'editor'"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-workbench.action.chat.sendToNewChat",
+        "when": "chatInputHasText && inChatInput && !chatSessionRequestInProgress"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-workbench.action.chat.submitSecondaryAgent",
+        "when": "chatInputHasText && inChatInput && !chatInputHasAgent && !chatSessionRequestInProgress"
+    },
+    {
+        "key": "ctrl+shift+enter",
+        "command": "-workbench.action.toggleFloatingPromptBar",
+        "when": "editorHasPromptBar && editorPromptBarFocused"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-editor.action.inlineDiffs.acceptAll",
+        "when": "editorTextFocus && @inlineDiffs.acceptAllEdits.isActiveEditorWithDiffs"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-chatEditor.action.accept",
+        "when": "chat.hasEditorModifications && editorFocus && hasUndecidedChatEditingResource && !chat.ctxHasRequestInProgress || chat.hasNotebookEditorModifications && editorFocus && hasUndecidedChatEditingResource && !chat.ctxHasRequestInProgress"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-workbench.action.chat.applyInEditor",
+        "when": "accessibleViewInCodeBlock && chatIsEnabled || chatIsEnabled && inChat && !inChatInput"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-workbench.action.chat.insertCodeBlock",
+        "when": "accessibleViewInCodeBlock && chatIsEnabled || chatIsEnabled && inChat && !inChatInput"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-workbench.action.chat.runInTerminal",
+        "when": "accessibleViewInCodeBlock && chatIsEnabled || chatIsEnabled && inChat"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-workbench.action.terminal.chat.insertCommand",
+        "when": "terminalChatResponseContainsCodeBlock && terminalHasBeenCreated && !terminalChatActiveRequest && !terminalChatResponseContainsMultipleCodeBlocks || terminalChatResponseContainsCodeBlock && terminalProcessSupported && !terminalChatActiveRequest && !terminalChatResponseContainsMultipleCodeBlocks"
+    },
+    {
+        "key": "ctrl+alt+enter",
+        "command": "-workbench.action.terminal.chat.insertFirstCommand",
+        "when": "terminalChatResponseContainsMultipleCodeBlocks && terminalHasBeenCreated && !terminalChatActiveRequest || terminalChatResponseContainsMultipleCodeBlocks && terminalProcessSupported && !terminalChatActiveRequest"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-workbench.action.terminal.chat.runCommand",
+        "when": "terminalChatResponseContainsCodeBlock && terminalHasBeenCreated && !terminalChatActiveRequest && !terminalChatResponseContainsMultipleCodeBlocks || terminalChatResponseContainsCodeBlock && terminalProcessSupported && !terminalChatActiveRequest && !terminalChatResponseContainsMultipleCodeBlocks"
+    },
+    {
+        "key": "ctrl+enter",
+        "command": "-workbench.action.terminal.chat.runFirstCommand",
+        "when": "terminalChatResponseContainsMultipleCodeBlocks && terminalHasBeenCreated && !terminalChatActiveRequest || terminalChatResponseContainsMultipleCodeBlocks && terminalProcessSupported && !terminalChatActiveRequest"
     }
 ]
