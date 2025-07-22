@@ -131,21 +131,6 @@
         "*.md": "default",
         "git-rebase-todo": "default"
     },
-    "terminal.integrated.profiles.windows": {
-        "PowerShell": {
-            "source": "PowerShell"
-        },
-        "Command Prompt": {
-            "path": [
-                "${env:windir}\\Sysnative\\cmd.exe",
-                "${env:windir}\\System32\\cmd.exe"
-            ],
-            "args": []
-        },
-        "Git Bash": {
-            "source": "Git Bash"
-        }
-    },
     "git.autofetch": true,
     "git.enableSmartCommit": true,
     "files.associations": {
@@ -168,37 +153,6 @@
     ],
     "security.workspace.trust.untrustedFiles": "open",
     "remote.SSH.remotePlatform": {
-        "166.111.25.29": "linux",
-        "wuhao": "linux",
-        "166.111.26.45": "linux",
-        "PhysicsDept": "linux",
-        "HaoWu": "linux",
-        "101.6.68.82": "linux",
-        "MSRA": "linux",
-        "39.104.18.188": "linux",
-        "M4Old": "windows",
-        "M4New": "windows",
-        "AlibabaRoot": "linux",
-        "192.168.138.128": "linux",
-        "drone": "linux",
-        "xtark": "linux",
-        "Judge": "linux",
-        "Hank": "linux",
-        "Alibaba": "linux",
-        "YihuaiMBP": "macOS",
-        "Woodbury": "linux",
-        "realdesktop003.stanford.edu": "linux",
-        "real003": "linux",
-        "real004": "linux",
-        "realdesktop003": "linux",
-        "real005": "linux",
-        "Kalman": "linux",
-        "Go2": "linux",
-        "OrinNX": "linux",
-        "Turing": "linux",
-        "IAD": "linux",
-        "localhost": "linux",
-        "PDX": "linux"
     },
     "diffEditor.wordWrap": "off",
     "screencastMode.fontSize": 30,
@@ -215,7 +169,6 @@
     "terminal.integrated.defaultProfile.windows": "Ubuntu-22.04 (WSL)",
     "notebook.output.textLineLimit": 10000,
     "terminal.integrated.inheritEnv": false,
-    "python.defaultInterpreterPath": "/Users/davidgao/opt/anaconda3/bin/python",
     "remote.SSH.configFile": "~/.ssh/config",
     "settingsSync.ignoredExtensions": [
         "james-yu.latex-workshop",
@@ -228,7 +181,6 @@
         "ms-vscode-remote.remote-wsl",
         "ms-vscode-remote.remote-containers"
     ],
-    "python.languageServer": "None",
     "debug.inlineValues": false,
     "git.confirmSync": false,
     "editor.inlineSuggest.enabled": true,
@@ -251,10 +203,6 @@
     },
     "debug.allowBreakpointsEverywhere": true,
     "window.commandCenter": false,
-    "[python]": {
-        "editor.formatOnType": true,
-        "editor.defaultFormatter": "ms-python.python"
-    },
     "latex-workshop.linting.chktex.exec.path": "/Library/TeX/texbin/chktex",
     "latex-workshop.latex.autoBuild.run": "onSave",
     "git.openRepositoryInParentFolders": "always",
@@ -266,18 +214,12 @@
     "explorer.confirmDragAndDrop": false,
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
-    "terminal.external.windowsExec": "C:\\Windows\\System32\\wsl.exe",
     "terminal.integrated.fontFamily": "SauceCodePro Nerd Font",
     "editor.fontFamily": "SauceCodePro Nerd Font",
     "[matlab]": {
         "editor.defaultFormatter": "MathWorks.language-matlab"
     },
-    "[typescriptreact]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
     "remote.autoForwardPortsSource": "hybrid",
-    // "latex-workshop.view.pdf.external.viewer.command": "C:/Users/davidgao/AppData/Local/SumatraPDF/SumatraPDF.exe",
-    // "latex-workshop.view.pdf.external.synctex.command": "/Applications/Skim.app/Contents/MacOS/Skim",
     "[cpp]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },

@@ -127,3 +127,6 @@ function port() {
 function port_kill() {
     lsof -i :$1 | tail -n +2 | awk '{print $2}' | xargs kill -9
 }
+
+alias cursor_pull="~/ubuntu-config/config_cursor.sh pull"
+alias cursor_push="~/ubuntu-config/config_cursor.sh push"
