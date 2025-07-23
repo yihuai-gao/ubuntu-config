@@ -155,8 +155,7 @@
     },
     {
         "key": "ctrl+shift+g",
-        "command": "workbench.view.scm",
-        "when": "workbench.scm.active && !inDebugMode"
+        "command": "workbench.view.scm"
     },
     {
         "key": "ctrl+shift+g",
@@ -700,10 +699,6 @@
         "when": "config.latex-workshop.bind.altKeymap.enabled && !virtualWorkspace && editorLangId =~ /^latex$|^latex-expl3$|^doctex$|^rsweave$|^jlweave$|^pweave$/"
     },
     {
-        "key": "ctrl+shift+b",
-        "command": "workbench.panel.aichat"
-    },
-    {
         "key": "ctrl+shift+l",
         "command": "-aichat.insertselectionintochat"
     },
@@ -932,9 +927,8 @@
         "when": "accessibleViewIsShown && terminalHasBeenCreated && accessibleViewCurrentProviderId == 'terminal'"
     },
     {
-        "key": "ctrl+shift+g",
-        "command": "workbench.view.debug",
-        "when": "inDebugMode"
+        "key": "ctrl+shift+b",
+        "command": "workbench.view.debug"
     },
     {
         "key": "ctrl+enter",
@@ -1163,5 +1157,10 @@
     {
         "key": "ctrl+shift+z",
         "command": "redo"
+    },
+    {
+        "key": "ctrl+shift+b",
+        "command": "-workbench.view.backgroundAgent",
+        "when": "viewContainer.workbench.view.backgroundAgent.enabled"
     }
 ]
