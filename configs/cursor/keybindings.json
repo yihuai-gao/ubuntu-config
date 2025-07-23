@@ -832,7 +832,7 @@
         "command": "-redo"
     },
     {
-        "key": "ctrl+shift+j",
+        "key": "ctrl+h",
         "command": "workbench.debug.action.toggleRepl",
         "when": "inDebugMode"
     },
@@ -1162,5 +1162,24 @@
         "key": "ctrl+shift+b",
         "command": "-workbench.view.backgroundAgent",
         "when": "viewContainer.workbench.view.backgroundAgent.enabled"
+    },
+    {
+        "key": "ctrl+h",
+        "command": "-editor.action.simpleInlineDiffs.rejectAll",
+        "when": "editorTextFocus && hasDisplayedSimpleDiff"
+    },
+    {
+        "key": "ctrl+h",
+        "command": "-editor.action.startFindReplaceAction",
+        "when": "editorFocus || editorIsOpen"
+    },
+    {
+        "key": "ctrl+shift+h",
+        "command": "-workbench.action.replaceInFiles"
+    },
+    {
+        "key": "ctrl+m ctrl+h",
+        "command": "-workbench.action.output.toggleOutput",
+        "when": "workbench.panel.output.active"
     }
 ]
