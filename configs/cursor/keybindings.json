@@ -832,9 +832,8 @@
         "command": "-redo"
     },
     {
-        "key": "ctrl+h",
-        "command": "workbench.debug.action.toggleRepl",
-        "when": "inDebugMode"
+        "key": "ctrl+,",
+        "command": "workbench.debug.action.toggleRepl"
     },
     {
         "key": "ctrl+shift+alt+y",
@@ -1181,5 +1180,14 @@
         "key": "ctrl+m ctrl+h",
         "command": "-workbench.action.output.toggleOutput",
         "when": "workbench.panel.output.active"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.debug.action.toggleRepl",
+        "when": "inDebugMode"
+    },
+    {
+        "key": "ctrl+,",
+        "command": "-workbench.action.openSettings"
     }
 ]
