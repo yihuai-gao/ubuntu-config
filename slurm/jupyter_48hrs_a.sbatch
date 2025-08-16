@@ -6,7 +6,7 @@
 #SBATCH --time-min=48:00:00
 #SBATCH --partition=pool0_datahall_a
 #SBATCH --ntasks-per-node=8
-#SBATCH --account=dir_cosmos_misc
+#SBATCH --account=dir_cosmos_base
 #SBATCH --exclusive
 #SBATCH --gres=gpu:8
 #SBATCH --output=/project/cosmos/yihuaig/jupyter_jobs/%j/job.out

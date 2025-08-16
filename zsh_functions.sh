@@ -130,3 +130,5 @@ function port_kill() {
 
 alias cursor_pull="~/ubuntu-config/config_cursor.sh pull"
 alias cursor_push="~/ubuntu-config/config_cursor.sh push"
+
+alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai su-vpn.stanford.edu"
