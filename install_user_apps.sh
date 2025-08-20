@@ -14,6 +14,8 @@ apt download sysstat
 apt download fio
 apt download x11-apps
 wget https://dev.yorhel.nl/download/ncdu-2.8.1-linux-x86_64.tar.gz
+
+mkdir -p $HOME/.local/usr/bin
 tar -xzf ncdu-2.8.1-linux-x86_64.tar.gz -C $HOME/.local/usr/bin
 
 dpkg-deb -x fzf* $HOME/.local
@@ -28,6 +30,5 @@ cd $file_dir
 $HOME/miniforge3/bin/mamba install -y yazi
 $HOME/miniforge3/bin/mamba install -y nvitop
 
-mkdir -p $HOME/.local/usr/bin
 ln -s $CONDA_PREFIX/bin/yazi $HOME/.local/usr/bin/yazi
 ln -s $CONDA_PREFIX/bin/nvitop $HOME/.local/usr/bin/nvitop

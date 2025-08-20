@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Install plugins for oh-my-zsh
 # HOME="/scratch/m000073/yihuai" # For Marlowe server
 
@@ -78,9 +80,9 @@ source $HOME/ubuntu-config/zsh_functions.sh
 # module load slurm
 
 # Disable prompting for completion (unless > 1000 completions)
-zstyle ':completion:*' list-prompt 'At %p: Hit TAB for more, or type a name'
-zstyle ':completion:*' list-colors ''
-zstyle ':completion:*' completions 1000
+zstyle ":completion:*" list-prompt "At %p: Hit TAB for more, or type a name"
+zstyle ":completion:*" list-colors ""
+zstyle ":completion:*" completions 1000
 
 ' >> ~/.zshrc
 
