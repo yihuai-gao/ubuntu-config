@@ -1182,12 +1182,11 @@
         "when": "workbench.panel.output.active"
     },
     {
-        "key": "ctrl+shift+j",
-        "command": "workbench.debug.action.toggleRepl",
-        "when": "inDebugMode"
-    },
-    {
         "key": "ctrl+,",
         "command": "-workbench.action.openSettings"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.toggleMaximizedPanel"
     }
 ]
