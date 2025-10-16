@@ -74,8 +74,8 @@ alias ze="zoxide edit"
 alias ncdu="ncdu -t8"
 
 
-alias fetch_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_gpu.py"
-alias fetch_slurm_gpu="~/miniforge3/bin/python ~/ubuntu-config/fetch_slurm_gpu.py"
+alias fetch_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_gpu.py"
+alias fetch_slurm_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_slurm_gpu.py"
 
 function compress() {
     if [ $# -ne 1 ]; then
