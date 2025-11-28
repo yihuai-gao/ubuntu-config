@@ -7,6 +7,7 @@ mkdir -p $HOME/.local
 mkdir -p $file_dir/downloads
 cd $file_dir/downloads
 
+# apt download fzf
 apt download zoxide
 apt download neofetch
 apt download x11-apps
@@ -26,5 +27,4 @@ cd $file_dir
 $HOME/miniforge3/bin/mamba install -y yazi
 $HOME/miniforge3/bin/mamba install -y nvitop
 
-ln -s $CONDA_PREFIX/bin/yazi $HOME/.local/usr/bin/yazi
 ln -s $CONDA_PREFIX/bin/nvitop $HOME/.local/usr/bin/nvitop

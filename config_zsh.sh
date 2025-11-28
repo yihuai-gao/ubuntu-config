@@ -68,21 +68,20 @@ bindkey -M menuselect \
 bindkey "^H" backward-kill-word
 zstyle ":autocomplete:*" delay 0.2  # seconds (float)
 zstyle ":autocomplete:*" min-input 3    # characters
-zstyle ":autocomplete:history-search-backward:*" list-lines 100
-zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 100
+zstyle ":autocomplete:history-search-backward:*" list-lines 1000
+zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 1000
+zstyle -e ':autocomplete:*:*' list-lines 'reply=( $(( LINES / 3 )) )'
 
 eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
+source <(fzf --zsh)
+
 ## For SLURM systems
 # source /etc/profile.d/modules.sh
 # module load slurm
 
-# Disable prompting for completion (unless > 1000 completions)
-zstyle ":completion:*" list-prompt "At %p: Hit TAB for more, or type a name"
-zstyle ":completion:*" list-colors ""
-zstyle ":completion:*" completions 1000
 
 ' >> ~/.zshrc
 

@@ -116,7 +116,7 @@ function calc_lines() {
         return 1
     fi
     suffix=$1
-    find . -name "*.${suffix}" -type f -exec cat {} + | wc -l
+    find . -name "*.${suffix}" -type f | xargs wc -l
 }
 
 
@@ -132,3 +132,4 @@ alias cursor_pull="~/ubuntu-config/config_cursor.sh pull"
 alias cursor_push="~/ubuntu-config/config_cursor.sh push"
 
 alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai su-vpn.stanford.edu"
+alias ca="conda activate"
