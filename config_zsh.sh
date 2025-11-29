@@ -76,7 +76,7 @@ eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
-export FZF_DEFAULT_OPTS="--bind=ctrl-left:backward-word,ctrl-right:forward-word"
+export FZF_DEFAULT_OPTS="--bind=ctrl-left:backward-word,ctrl-right:forward-word --layout=reverse"
 
 source <(fzf --zsh)
 

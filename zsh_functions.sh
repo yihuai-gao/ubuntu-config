@@ -133,3 +133,4 @@ alias cursor_push="~/ubuntu-config/config_cursor.sh push"
 
 alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai su-vpn.stanford.edu"
 alias ca="conda activate"
+alias f="fzf --reverse"
