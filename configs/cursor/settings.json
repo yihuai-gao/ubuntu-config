@@ -152,13 +152,7 @@
         "python.languageServer"
     ],
     "security.workspace.trust.untrustedFiles": "open",
-    "remote.SSH.remotePlatform": {
-        "IAD": "linux",
-        "localhost": "linux",
-        "YihuaiDesktop": "linux",
-        "realdesktop007": "linux",
-        "IADStanford": "linux"
-    },
+    "remote.SSH.remotePlatform": {},
     "diffEditor.wordWrap": "off",
     "screencastMode.fontSize": 30,
     "screencastMode.keyboardOverlayTimeout": 500,
