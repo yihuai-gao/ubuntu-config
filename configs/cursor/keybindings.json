@@ -1188,5 +1188,34 @@
     {
         "key": "ctrl+shift+j",
         "command": "workbench.action.toggleMaximizedPanel"
+    },
+    {
+        "key": "ctrl+alt+c",
+        "command": "-copyFilePath",
+        "when": "!editorFocus"
+    },
+    {
+        "key": "ctrl+m ctrl+alt+c",
+        "command": "-copyFilePath",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+shift+alt+c",
+        "command": "-copyRelativeFilePath",
+        "when": "!editorFocus"
+    },
+    {
+        "key": "ctrl+alt+c",
+        "command": "copyRelativeFilePath"
+    },
+    {
+        "key": "ctrl+shift+q",
+        "command": "workbench.action.reloadWindow",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+r",
+        "command": "-workbench.action.reloadWindow",
+        "when": "isDevelopment"
     }
 ]
