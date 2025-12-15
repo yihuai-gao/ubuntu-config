@@ -106,21 +106,8 @@
         "*.log",
         "*.fdb_latexmk"
     ],
-    "latex-workshop.view.pdf.viewer": "external",
-    "latex-workshop.view.pdf.external.viewer.args": [
-        "0",
-        "%PDF%"
-    ],
-    "latex-workshop.view.pdf.external.synctex.args": [
-        "-forward-search",
-        "%TEX%",
-        "%LINE%",
-        "-reuse-instance",
-        "-inverse-search",
-        "\"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code/Code.exe\" \"C:\\Users\\hyy\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\out\\cli.js\" -r -g \"%f:%l\"",
-        "%PDF%"
-    ],
     "latex-workshop.synctex.afterBuild.enabled": true,
+    "latex-workshop.view.pdf.viewer": "tab",
     "C_Cpp.clang_format_style": "Microsoft",
     "C_Cpp.updateChannel": "Insiders",
     "workbench.editorAssociations": {
@@ -152,7 +139,6 @@
         "python.languageServer"
     ],
     "security.workspace.trust.untrustedFiles": "open",
-    "remote.SSH.remotePlatform": {},
     "diffEditor.wordWrap": "off",
     "screencastMode.fontSize": 30,
     "screencastMode.keyboardOverlayTimeout": 500,
