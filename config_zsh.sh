@@ -70,7 +70,7 @@ zstyle ":autocomplete:*" delay 0.2  # seconds (float)
 zstyle ":autocomplete:*" min-input 3    # characters
 zstyle ":autocomplete:history-search-backward:*" list-lines 1000
 zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 1000
-zstyle -e ':autocomplete:*:*' list-lines 'reply=( $(( LINES / 3 )) )'
+zstyle -e  ":autocomplete:*:*" list-lines "reply=( $(( LINES / 3 )) )"
 
 eval "$(zoxide init zsh)"
 
