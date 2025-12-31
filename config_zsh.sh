@@ -76,7 +76,7 @@ eval "$(zoxide init zsh)"
 
 source $HOME/ubuntu-config/zsh_functions.sh
 
-export FZF_DEFAULT_OPTS="--bind=ctrl-left:backward-word,ctrl-right:forward-word,ctrl-up:prev-history,ctrl-down:next-history --multi --reverse --history=$HOME/.fzf_history"
+export FZF_DEFAULT_OPTS="--bind=ctrl-left:backward-word,ctrl-right:forward-word,ctrl-up:prev-history,ctrl-down:next-history,ctrl-a:select-all+accept --multi --reverse --history=$HOME/.fzf_history"
 
 source <(fzf --zsh)
 
