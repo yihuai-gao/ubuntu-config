@@ -217,10 +217,10 @@
     "workbench.colorTheme": "Default Dark+",
     "zenMode.hideLineNumbers": false,
     "zenMode.centerLayout": false,
-    "terminal.integrated.stickyScroll.enabled": true,
     "notebook.stickyScroll.enabled": true,
     "editor.stickyScroll.defaultModel": "indentationModel",
     "debug.onTaskErrors": "abort",
     "explorer.compactFolders": false,
     "remote.autoForwardPorts": false,
+    "explorer.sortOrderReverse": true,
 }
