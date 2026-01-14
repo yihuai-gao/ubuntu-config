@@ -1330,6 +1330,16 @@
         "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
     },
     {
+        "key": "ctrl+enter",
+        "command": "-geminicodeassist.generateCode",
+        "when": "authLoggedIn && config.geminicodeassist.enable && editorTextFocus && !inGeminiDiffView && !isInDiffEditor && !nextEditSessionAvailable"
+    },
+    {
+        "key": "ctrl+e",
+        "command": "-cursor.toggleAgentWindowIDEUnification",
+        "when": "cursor.agentIdeUnification.featureGate && workbenchState != 'empty'"
+    },
+    {
         "key": "ctrl+m ctrl+p",
         "command": "svg.showSvg",
         "when": "editorTextFocus && editorLangId == 'svg'"
