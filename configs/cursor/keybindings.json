@@ -1328,5 +1328,14 @@
         "key": "ctrl+shift+down",
         "command": "-workbench.action.terminal.selectToNextCommand",
         "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
+    },
+    {
+        "key": "ctrl+m ctrl+p",
+        "command": "svg.showSvg",
+        "when": "editorTextFocus && editorLangId == 'svg'"
+    },
+    {
+        "key": "ctrl+m ctrl+p",
+        "command": "-workbench.action.showAllEditors"
     }
 ]
