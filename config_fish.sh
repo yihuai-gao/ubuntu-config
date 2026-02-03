@@ -100,9 +100,18 @@ EOF
 # Copy functions file to Fish config
 cp $HOME/ubuntu-config/fish_functions.fish ~/.config/fish/functions.fish 2>/dev/null || true
 
-echo "Fish shell configuration complete!"
-echo "To start using Fish, run: fish"
-echo "To set Fish as default shell, run: chsh -s $(which fish)"
-echo ""
-echo "Note: Fish has built-in autosuggestions and syntax highlighting."
-echo "Use the up arrow to search history (like zsh-autocomplete)."
+# echo "Fish shell configuration complete!"
+# echo "To start using Fish, run: fish"
+# echo "To set Fish as default shell, run: chsh -s $(which fish)"
+# echo ""
+# echo "Note: Fish has built-in autosuggestions and syntax highlighting."
+# echo "Use the up arrow to search history (like zsh-autocomplete)."
+
+
+
+
+# If there is $HOME/.zsh_history, convert it to $HOME/.fish_history
+if [ -f $HOME/.zsh_history ]; then
+    pip install zsh-history-to-fish
+    zsh-history-to-fish
+fi
