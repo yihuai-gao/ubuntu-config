@@ -142,3 +142,4 @@ alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgrou
 alias ca="conda activate"
 alias f="fzf | sort"
 alias ls="ls -lah --color=auto"
+alias l="ls -lah --color=auto"

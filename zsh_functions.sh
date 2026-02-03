@@ -135,3 +135,7 @@ alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgrou
 alias ca="conda activate"
 alias f="fzf | sort"
 alias ls="ls -lah --color=auto"
+
+
+alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
+alias gcsd="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --dry-run --log debug --stat"

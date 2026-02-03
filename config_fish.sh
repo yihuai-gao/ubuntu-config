@@ -26,6 +26,8 @@ fisher install jorgebucaran/fish-git
 fisher install PatrickF1/fzf.fish
 
 fisher install rafaelrinaldi/pure
+
+fisher install jorgebucaran/fish-getopts
 "
 
 # Create Fish config directory if it doesn't exist
