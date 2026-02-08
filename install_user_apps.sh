@@ -21,7 +21,18 @@ if [ $arch == "x86_64" ]; then
     wget https://github.com/sxyazi/yazi/releases/download/v26.1.4/yazi-x86_64-unknown-linux-gnu.deb
     dpkg-deb -x yazi-x86_64-unknown-linux-gnu.deb $HOME/.local
 
+    # Install fish
+    wget https://github.com/fish-shell/fish-shell/releases/download/4.4.0/fish-4.4.0-linux-x86_64.tar.xz
+    tar -xf fish-4.4.0-linux-x86_64.tar.xz -C $HOME/.local/usr/bin
+
+
 elif [ $arch == "aarch64" ]; then
+
+    # Install fish
+    wget https://github.com/fish-shell/fish-shell/releases/download/4.4.0/fish-4.4.0-linux-aarch64.tar.xz
+    tar -xf fish-4.4.0-linux-aarch64.tar.xz -C $HOME/.local/usr/bin
+
+
     wget https://dev.yorhel.nl/download/ncdu-2.8.1-linux-aarch64.tar.gz
     tar -xzf ncdu-2.8.1-linux-aarch64.tar.gz -C $HOME/.local/usr/bin
 
