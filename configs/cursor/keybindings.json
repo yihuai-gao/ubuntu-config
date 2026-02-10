@@ -554,11 +554,6 @@
     },
     {
         "key": "ctrl+q",
-        "command": "workbench.action.quit",
-        "when": "!inDebugMode"
-    },
-    {
-        "key": "ctrl+q",
         "command": "-workbench.action.quit"
     },
     {
@@ -1209,7 +1204,7 @@
         "command": "copyRelativeFilePath"
     },
     {
-        "key": "ctrl+shift+q",
+        "key": "ctrl+shift+q ctrl+shift+q",
         "command": "workbench.action.reloadWindow",
         "when": "!inDebugMode"
     },
@@ -1347,5 +1342,9 @@
     {
         "key": "ctrl+m ctrl+p",
         "command": "-workbench.action.showAllEditors"
+    },
+    {
+        "key": "ctrl+m ctrl+q",
+        "command": "-workbench.action.navigateToLastEditLocation"
     }
 ]
