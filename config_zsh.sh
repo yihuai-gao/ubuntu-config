@@ -6,7 +6,7 @@
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
+# git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
 
 
 # If you do not have https access to github (typically on servers in China), please use the following ssh cloning instead.
@@ -28,7 +28,6 @@ echo '
 export PATH=$PATH:${HOME}/.local/bin
 export TZ="America/Los_Angeles"
 
-export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="eastwood"
 
 # To suppress some warning messages
@@ -36,14 +35,23 @@ zle -N insert-unambiguous-or-complete
 zle -N menu-search
 zle -N recent-paths
 
-plugins=(
-  git
-  zsh-autosuggestions
-  zsh-autocomplete
-  zsh-syntax-highlighting
-  themes
-)
-source $ZSH/oh-my-zsh.sh
+# plugins=(
+#   git
+#   zsh-autosuggestions
+#   zsh-autocomplete
+#   zsh-syntax-highlighting
+#   themes
+# )
+# export ZSH="$HOME/.oh-my-zsh"
+# source $ZSH/oh-my-zsh.sh
+
+source $HOME/.oh-my-zsh/custom/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+export HISTSIZE=1000000
+WORDCHARS="*?_[]~=&;!#$%^(){}<>"
+
 export PATH="$HOME/.local/usr/bin:$PATH"
 export EDITOR="vim"
 
@@ -63,6 +71,16 @@ bindkey -M menuselect \
     "\eOH" .beginning-of-line \
     "\e[F" .end-of-line \
     "\eOF" .end-of-line
+
+
+bindkey \
+    "^[[1;5D" .backward-word \
+    "^[[1;5C" forward-word \
+    "\e[H" .beginning-of-line \
+    "\eOH" .beginning-of-line \
+    "\e[F" .end-of-line \
+    "\eOF" .end-of-line
+bindkey '^U' kill-buffer
 
 #   Use Ctrl-Backsbace to kill the word before the cursor
 bindkey "^H" backward-kill-word

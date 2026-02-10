@@ -47,6 +47,7 @@ fi
 apt download zoxide
 apt download neofetch
 apt download x11-apps
+apt download htop
 
 dpkg-deb -x zoxide* $HOME/.local
 dpkg-deb -x neofetch* $HOME/.local
