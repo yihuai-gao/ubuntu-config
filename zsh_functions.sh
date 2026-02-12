@@ -91,6 +91,24 @@ function compress() {
     cd $current_dir
 }
 
+function compress_all() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: compress_all <directory>"
+        return 1
+    fi
+    directory=$1
+    for file in $(find $directory -maxdepth 1 -type d); do
+        if [[ $file == *.zarr ]]; then
+            # Check if the file ends with .zarr
+            echo "Compressing $file"
+            compress $file &
+        else
+            echo "Skipping $file"
+        fi
+    done
+    wait
+}
+
 function decompress() {
     if [ $# -ne 1 ]; then
         echo "Usage: decompress <file_path>"
@@ -105,10 +123,19 @@ function decompress() {
     cd $current_dir
 }
 
-
-
-
-
+function decompress_all() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: decompress_all <directory>"
+        return 1
+    fi
+    directory=$1
+    # Run the following command in parallel. Only 1 level deep.
+    for file in $(find $directory -maxdepth 1 -name "*.tar.lz4" -type f); do
+        echo "Decompressing $file"
+        decompress $file &
+    done
+    wait
+}
 
 function calc_lines() {
     if [ $# -ne 1 ]; then
@@ -135,6 +162,7 @@ alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgrou
 alias ca="conda activate"
 alias f="fzf | sort"
 alias ls="ls -lah --color=auto"
+alias l="ls -lah --color=auto"
 
 
 alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
