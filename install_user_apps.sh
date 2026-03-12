@@ -8,7 +8,7 @@ mkdir -p $file_dir/downloads
 cd $file_dir/downloads
 
 # apt download fzf
-$arch=$(uname -m)
+arch=$(uname -m)
 mkdir -p $HOME/.local/usr/bin
 
 if [ $arch == "x86_64" ]; then
