@@ -78,17 +78,36 @@ alias fetch_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_gpu.py"
 alias fetch_slurm_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_slurm_gpu.py"
 
 function compress() {
-    if [ $# -ne 1 ]; then
-        echo "Usage: compress <data_storage_dir>"
+    # Check if we have at least 1 and no more than 2 arguments
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: compress <data_storage_dir> [target_dir]"
         return 1
     fi
-    current_dir=$(pwd)
-    data_storage_dir=$1
-    cpu_cores=$(($(nproc) - 1))
-    file_name=$(basename $data_storage_dir)
-    cd $(dirname $data_storage_dir)
-    tar cf - ${file_name} | lz4 -c > ${file_name}.tar.lz4
-    cd $current_dir
+
+    local current_dir=$(pwd)
+    local data_storage_dir=$1
+    local file_name=$(basename "$data_storage_dir")
+    local source_parent_dir=$(dirname "$data_storage_dir")
+    
+    # Determine the target directory
+    # If $2 is provided, use it; otherwise, use the source parent directory
+    local target_dir=${2:-$source_parent_dir}
+
+    # Create the target directory if it doesn't exist
+    # -p ensures no error if it exists and creates parent paths if needed
+    if [ ! -d "$target_dir" ]; then
+        echo "Creating target directory: $target_dir"
+        mkdir -p "$target_dir"
+    fi
+
+    # Navigate to the source's parent directory
+    cd "$source_parent_dir" || return 1
+    
+    # Run compression and output to the target directory
+    tar cf - "$file_name" | lz4 -c > "${target_dir}/${file_name}.tar.lz4"
+    
+    # Return to the original directory
+    cd "$current_dir"
 }
 
 function compress_all() {
