@@ -110,6 +110,28 @@ function compress() {
     cd "$current_dir"
 }
 
+function compress_zip() {
+    if [ $# -ne 1 ]; then
+        echo "Usage: compress_zip <directory>"
+        return 1
+    fi
+    current_dir=$(pwd)
+    directory=$1
+    cd $(dirname $directory)
+    file_name=$(basename $directory)
+    zip -r ${file_name}.zip ${file_name}
+    cd $current_dir
+    echo "Compressed ${file_name} to ${file_name}.zip"
+    return 0
+}
+
+# function decompress_zip() {
+#     if [ $# -ne 1 ]; then
+#         echo "Usage: decompress_zip <file_path>"
+#         return 1
+#     fi
+#     current_dir=$(pwd)
+# }
 function compress_all() {
     if [ $# -ne 1 ]; then
         echo "Usage: compress_all <directory>"
@@ -186,3 +208,4 @@ alias l="ls -lah --color=auto"
 
 alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
 alias gcsd="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --dry-run --log debug --stat"
+alias ytdl="yt-dlp --cookies-from-browser chrome --js-runtime node -k"

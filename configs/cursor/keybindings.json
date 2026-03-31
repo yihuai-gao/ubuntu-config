@@ -1181,6 +1181,10 @@
         "command": "-workbench.action.openSettings"
     },
     {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.toggleMaximizedPanel"
+    },
+    {
         "key": "ctrl+j",
         "command": "workbench.action.toggleMaximizedPanel",
         "when": "panelMaximized"

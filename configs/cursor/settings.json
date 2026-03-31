@@ -223,5 +223,32 @@
     "explorer.compactFolders": false,
     "remote.autoForwardPorts": false,
     "explorer.sortOrderReverse": true,
+    "terminal.integrated.profiles.linux": {
+        "zsh-user": {
+            "path": "~/.local/bin/zsh"
+        },
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+        },
+        "zsh": {
+            "path": "zsh"
+        },
+        "fish": {
+            "path": "fish"
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        },
+        "pwsh": {
+            "path": "pwsh",
+            "icon": "terminal-powershell"
+        },
+        "bash (2)": {
+            "path": "/usr/bin/bash"
+        }
+    },
+    "workbench.layoutControl.enabled": false,
     "editor.wordWrap": "on",
 }
