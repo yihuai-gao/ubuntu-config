@@ -223,4 +223,5 @@
     "explorer.compactFolders": false,
     "remote.autoForwardPorts": false,
     "explorer.sortOrderReverse": true,
+    "editor.wordWrap": "on",
 }

@@ -1181,8 +1181,9 @@
         "command": "-workbench.action.openSettings"
     },
     {
-        "key": "ctrl+shift+j",
-        "command": "workbench.action.toggleMaximizedPanel"
+        "key": "ctrl+j",
+        "command": "workbench.action.toggleMaximizedPanel",
+        "when": "panelMaximized"
     },
     {
         "key": "ctrl+alt+c",
@@ -1344,7 +1345,37 @@
         "command": "-workbench.action.showAllEditors"
     },
     {
-        "key": "ctrl+m ctrl+q",
-        "command": "-workbench.action.navigateToLastEditLocation"
+        "key": "ctrl+m ctrl+j",
+        "command": "-editor.unfoldAll",
+        "when": "editorTextFocus && foldingEnabled"
+    },
+    {
+        "key": "ctrl+t",
+        "command": "-composer.createNewComposerTab",
+        "when": "agentsPaneFocused || composerFocused || activeEditor == 'workbench.editor.composer' || focusedView =~ /^workbench.panel.aichat.view/"
+    },
+    {
+        "key": "ctrl+n",
+        "command": "-composer.createNewComposerTab",
+        "when": "agentsPaneFocused && !editorTextFocus && !explorerViewletFocus && !filesExplorerFocus || composerFocused && !editorTextFocus && !explorerViewletFocus && !filesExplorerFocus || !editorTextFocus && !explorerViewletFocus && !filesExplorerFocus && activeEditor == 'workbench.editor.composer' || !editorTextFocus && !explorerViewletFocus && !filesExplorerFocus && focusedView =~ /^workbench.panel.aichat.view/"
+    },
+    {
+        "key": "ctrl+alt+i",
+        "command": "-workbench.panel.chat",
+        "when": "workbench.panel.chat.view.copilot.active"
+    },
+    {
+        "key": "ctrl+alt+e",
+        "command": "-workbench.action.maximizeChatSize",
+        "when": "cursor.agentIdeUnification.enabled"
+    },
+    {
+        "key": "ctrl+shift+backspace",
+        "command": "-composer.cancelComposerStep",
+        "when": "composerFocused || focusedView =~ /^workbench.panel.aichat.view/"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.toggleMaximizedPanel"
     }
 ]
