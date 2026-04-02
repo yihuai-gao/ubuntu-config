@@ -75,17 +75,41 @@ alias ncdu="ncdu -t8"
 
 function cncdu() {
     target_dir=$1
+    if [ -z "$target_dir" ]; then
+        target_dir=.
+    fi
+    # Get absolute path
+    target_dir=$(realpath $target_dir)
+    # Replace / with _
+    cache_name=$(echo $target_dir | sed 's/\//_/g')
+    cache_name="${cache_name}_ncdu_cache.gz"
     thread_num=$2
+    nohup_file=$HOME/.cache/ncdu/$cache_name.nohup
+
     if [ -z "$thread_num" ]; then
         thread_num=8
     fi
-    nohup /home/$USER/.local/usr/bin/ncdu -t$thread_num -1xo $target_dir/ncdu_cache.gz $target_dir &
+    if [ ! -d "$HOME/.cache/ncdu" ]; then
+        mkdir -p $HOME/.cache/ncdu
+    fi
+    nohup /home/$USER/.local/usr/bin/ncdu -t$thread_num -1xo $HOME/.cache/ncdu/$cache_name $target_dir > $nohup_file 2>&1 &
 }
 
 function lncdu() {
     target_dir=$1
-    /home/$USER/.local/usr/bin/ncdu -f $target_dir/ncdu_cache.gz
+    if [ -z "$target_dir" ]; then
+        target_dir=.
+    fi
+    # Get absolute path
+    target_dir=$(realpath $target_dir)
+    # Replace / with _
+    cache_name=$(echo $target_dir | sed 's/\//_/g')
+    cache_name="${cache_name}_ncdu_cache.gz"
+    cache_bak_name="${cache_name}.bak"
+    cp $HOME/.cache/ncdu/$cache_name $HOME/.cache/ncdu/$cache_bak_name
+    /home/$USER/.local/usr/bin/ncdu -f $HOME/.cache/ncdu/$cache_bak_name
 }
+
 
 alias fetch_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_gpu.py"
 alias fetch_slurm_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_slurm_gpu.py"
