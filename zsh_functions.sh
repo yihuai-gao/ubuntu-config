@@ -73,6 +73,19 @@ alias hn="hostname"
 alias ze="zoxide edit"
 alias ncdu="ncdu -t8"
 
+function cncdu() {
+    target_dir=$1
+    thread_num=$2
+    if [ -z "$thread_num" ]; then
+        thread_num=8
+    fi
+    nohup /home/$USER/.local/usr/bin/ncdu -t$thread_num -1xo $target_dir/ncdu_cache.gz $target_dir &
+}
+
+function lncdu() {
+    target_dir=$1
+    /home/$USER/.local/usr/bin/ncdu -f $target_dir/ncdu_cache.gz
+}
 
 alias fetch_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_gpu.py"
 alias fetch_slurm_gpu="$CONDA_PYTHON_EXE ~/ubuntu-config/fetch_slurm_gpu.py"
