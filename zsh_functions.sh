@@ -170,16 +170,17 @@ function compress_zip() {
 #     current_dir=$(pwd)
 # }
 function compress_all() {
-    if [ $# -ne 1 ]; then
-        echo "Usage: compress_all <directory>"
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: compress <data_storage_dir> [target_dir]"
         return 1
     fi
     directory=$1
+    target_dir=${2:-$directory}
     for file in $(find $directory -maxdepth 1 -type d); do
-        if [[ $file == *.zarr ]]; then
+        if [[ $file != . ]]; then
             # Check if the file ends with .zarr
             echo "Compressing $file"
-            compress $file &
+            compress $file $target_dir &
         else
             echo "Skipping $file"
         fi
