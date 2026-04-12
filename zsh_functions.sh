@@ -71,7 +71,7 @@ function scp_pull() {
 alias c="cursor"
 alias hn="hostname"
 alias ze="zoxide edit"
-alias ncdu="ncdu -t8"
+alias ncdu="ncdu -t8 -1x"
 
 function cncdu() {
     target_dir=$1
@@ -247,3 +247,45 @@ alias l="ls -lah --color=auto"
 alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
 alias gcsd="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --dry-run --log debug --stat"
 alias ytdl="yt-dlp --cookies-from-browser chrome --js-runtime node -k"
+hfdl() {
+    if [[ -z "$1" ]]; then
+        echo "Usage: hfdl <huggingface_url>"
+        return 1
+    fi
+
+    local URL=$1
+    local REPO_TYPE="model"
+    local REPO_ID=""
+    local FILE_PATH=""
+
+    # Remove protocol and domain
+    local CLEAN_URL=${URL#*huggingface.co/}
+
+    # Determine Repo Type and ID
+    if [[ "$CLEAN_URL" == datasets/* ]]; then
+        REPO_TYPE="dataset"
+        # Extract: user/repo from datasets/user/repo/...
+        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
+        # Extract file path: skip 'datasets/user/repo/blob/branch/' (5 segments)
+        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
+    elif [[ "$CLEAN_URL" == spaces/* ]]; then
+        REPO_TYPE="space"
+        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
+        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
+    else
+        REPO_TYPE="model"
+        # Extract: user/repo from user/repo/...
+        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f1,2)
+        # Extract file path: skip 'user/repo/blob/branch/' (4 segments)
+        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f5-)
+    fi
+
+    echo "Downloading from $REPO_TYPE: $REPO_ID"
+    echo "File: $FILE_PATH"
+
+    huggingface-cli download "$REPO_ID" \
+        --repo-type "$REPO_TYPE" \
+        --include "$FILE_PATH" \
+        --local-dir . \
+        --local-dir-use-symlinks False
+}
