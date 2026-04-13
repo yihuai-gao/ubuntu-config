@@ -48,10 +48,12 @@ apt download zoxide
 apt download neofetch
 apt download x11-apps
 apt download htop
+apt download gifsicle
 
 dpkg-deb -x zoxide* $HOME/.local
 dpkg-deb -x neofetch* $HOME/.local
 dpkg-deb -x x11-apps* $HOME/.local
+dpkg-deb -x gifsicle* $HOME/.local
 cd $file_dir
 
 

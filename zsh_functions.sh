@@ -289,3 +289,24 @@ hfdl() {
         --local-dir . \
         --local-dir-use-symlinks False
 }
+
+gif() {
+    if [ -z "$1" ]; then
+        echo "Error: No input file provided."
+        return 1
+    fi
+
+    local input="$1"
+    local output="${input%.*}.gif"
+
+    echo "Optimizing $input for a smaller file size..."
+
+    # Optimization 1: Max colors limited to 128 (down from 256)
+    # Optimization 2: Use 'stats_mode=diff' to only update moving pixels
+    ffmpeg -i "$input" -vf \
+    "fps=10,scale=240:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=1" \
+    -y "$output"
+    # gifsicle -O3 --lossy=30 --colors 128 $output -o $output
+
+    echo "Done! Check $output"
+}
