@@ -127,8 +127,8 @@ function compress() {
     local source_parent_dir=$(dirname "$data_storage_dir")
     
     # Determine the target directory
-    # If $2 is provided, use it; otherwise, use the source parent directory
-    local target_dir=${2:-$source_parent_dir}
+    # If $2 is provided, use it; otherwise, use the current directory
+    local target_dir=${2:-.}
 
     # Create the target directory if it doesn't exist
     # -p ensures no error if it exists and creates parent paths if needed
@@ -188,18 +188,23 @@ function compress_all() {
     wait
 }
 
+
 function decompress() {
-    if [ $# -ne 1 ]; then
-        echo "Usage: decompress <file_path>"
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: decompress <file_path> [target_dir]"
         return 1
     fi
     current_dir=$(pwd)
     file_path=$1
+    file_dir=$(dirname $file_path)
     cpu_cores=$(($(nproc) - 1))
     file_name=$(basename $file_path)
-    cd $(dirname $file_path)
-    lz4 -d -c ${file_name} | tar xf -
+    cd $file_dir
+    target_dir=${2:-$file_dir}
+    lz4 -d -c ${file_name} | tar xf - -C $target_dir
     cd $current_dir
+    echo "Decompressed ${file_name} to ${target_dir}"
+    return 0
 }
 
 function decompress_all() {
