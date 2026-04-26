@@ -230,6 +230,16 @@ function calc_lines() {
     find . -name "*.${suffix}" -type f | xargs wc -l
 }
 
+function count() {
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: count_files <pattern> [directory]"
+        return 1
+    fi
+    local pattern=$1
+    local directory=${2:-.}
+    find "$directory" -type f -name "*$pattern*" | wc -l
+}
+
 
 function port() {
     lsof -i :$1
