@@ -35,19 +35,19 @@ zle -N insert-unambiguous-or-complete
 zle -N menu-search
 zle -N recent-paths
 
-# plugins=(
-#   git
-#   zsh-autosuggestions
-#   zsh-autocomplete
-#   zsh-syntax-highlighting
-#   themes
-# )
-# export ZSH="$HOME/.oh-my-zsh"
-# source $ZSH/oh-my-zsh.sh
+plugins=(
+  git
+  zsh-autosuggestions
+  zsh-autocomplete
+  zsh-syntax-highlighting
+  themes
+)
+export ZSH="$HOME/.oh-my-zsh"
+source $ZSH/oh-my-zsh.sh
 
-source $HOME/.oh-my-zsh/custom/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 export HISTSIZE=1000000
 WORDCHARS="*?_[]~=&;!#$%^(){}<>"

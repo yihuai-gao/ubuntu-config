@@ -57,9 +57,6 @@ dpkg-deb -x gifsicle* $HOME/.local
 cd $file_dir
 
 
-# $HOME/miniforge3/bin/mamba install -y yazi
-# $HOME/miniforge3/bin/mamba install -y nvitop
-
 ln -s $CONDA_PREFIX/bin/nvitop $HOME/.local/usr/bin/nvitop
 
 # wget https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_linux_amd64.deb
