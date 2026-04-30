@@ -42,6 +42,7 @@ Helpful functions:
 
 ```sh
 ./config_zsh.sh
+~/miniforge3/bin/conda init zsh
 ```
 
 ### Install Nerd Fonts
