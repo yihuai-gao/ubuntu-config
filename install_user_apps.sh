@@ -25,6 +25,9 @@ if [ $arch == "x86_64" ]; then
     wget https://github.com/fish-shell/fish-shell/releases/download/4.4.0/fish-4.4.0-linux-x86_64.tar.xz
     tar -xf fish-4.4.0-linux-x86_64.tar.xz -C $HOME/.local/usr/bin
 
+    wget https://github.com/sharkdp/fd/releases/download/v10.4.2/fd-musl_10.4.2_amd64.deb
+    dpkg-deb -x fd-musl_10.4.2_amd64.deb $HOME/.local
+
 
 elif [ $arch == "aarch64" ]; then
 
@@ -41,6 +44,9 @@ elif [ $arch == "aarch64" ]; then
 
     wget https://github.com/sxyazi/yazi/releases/download/v26.1.4/yazi-aarch64-unknown-linux-gnu.deb
     dpkg-deb -x yazi-aarch64-unknown-linux-gnu.deb $HOME/.local
+
+    wget https://github.com/sharkdp/fd/releases/download/v10.4.2/fd-musl_10.4.2_arm64.deb
+    dpkg-deb -x fd-musl_10.4.2_arm64.deb $HOME/.local
 
 fi
 

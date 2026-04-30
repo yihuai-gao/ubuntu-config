@@ -254,11 +254,19 @@ alias cursor_push="~/ubuntu-config/config_cursor.sh push"
 
 alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai su-vpn.stanford.edu"
 alias ca="conda activate"
-alias f="fzf | sort"
+# alias f="fzf | sort"
 alias ls="ls -lah --color=auto"
 alias l="ls -lah --color=auto"
 
-
+f() {
+    process_num=$(($(nproc) - 1)) # max 64
+    process_num=$(($process_num > 64 ? 64 : $process_num))
+    if [[ -z "$1" ]]; then
+        fd -j$process_num . | fzf | sort
+    else
+        fd -j$process_num --max-depth $1 | fzf | sort
+    fi
+}
 alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
 alias gcsd="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --dry-run --log debug --stat"
 alias ytdl="yt-dlp --cookies-from-browser chrome --js-runtime node -k"
@@ -324,4 +332,9 @@ gif() {
     # gifsicle -O3 --lossy=30 --colors 128 $output -o $output
 
     echo "Done! Check $output"
+}
+
+
+function branch() {
+    git for-each-ref --sort=committerdate --format='%(committerdate:relative)%09%(refname:short)' refs/heads/ refs/remotes/ | grep "$1" | column -t -s $'\t'
 }
