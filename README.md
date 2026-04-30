@@ -28,15 +28,10 @@ Use `source ~/.zshrc` to apply the changes, or you can also open a new `zsh` ter
 ./install_user_apps.sh
 ```
 
-Helpful functions:
-- `calc_lines <suffix>`: calculate the number of lines of code by suffix
-- `count <pattern> [directory]`: count the number of files by pattern
-- `compress <data_storage_dir>`: compress the data storage directory
-- `decompress <file_path>`: decompress the file
-- `port <port_number>`: show the processes on the port
-- `port_kill <port_number>`: kill the processes on the port
-- `fzf`: fuzzy finder
-- `ls`: list files
+Helpful apps:
+- `fzf`: fuzzy finder; `ctrl-R` to search for history commands
+- `ncdu`: multi-thread disk space scanning
+- `yazi`: terminal file navigation
 
 ### Update zsh configuration
 
