@@ -71,7 +71,7 @@ function scp_pull() {
 alias c="cursor"
 alias hn="hostname"
 alias ze="zoxide edit"
-alias ncdu="ncdu -t8 -1x"
+alias ncdu="ncdu -t32 -1x"
 
 function cncdu() {
     target_dir=$1
@@ -337,4 +337,31 @@ gif() {
 
 function branch() {
     git for-each-ref --sort=committerdate --format='%(committerdate:relative)%09%(refname:short)' refs/heads/ refs/remotes/ | grep "$1" | column -t -s $'\t'
+}
+
+tar_copy() {
+    local src="${1%/}" # Remove trailing slash
+    local dest="$2"
+
+    if [ ! -d "$src" ]; then
+        echo "Error: Source $src is not a directory."
+        return 1
+    fi
+
+    # Extract the folder name (e.g., "debug_jobs")
+    local folder_name=$(basename "$src")
+    local full_dest="$dest/$folder_name"
+
+    mkdir -p "$full_dest"
+    
+    echo "Streaming $src to $full_dest..."
+    tar -cf - -C "$src" . | tar -xf - -C "$full_dest"
+}
+
+download_hf () {
+    hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $2
+}
+
+upload_hf () {
+    hf buckets sync $1 hf://buckets/nvidia/camera-cross-embodiment/$2
 }
