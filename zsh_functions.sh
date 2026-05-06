@@ -270,48 +270,48 @@ f() {
 alias gcs="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --log debug --stat"
 alias gcsd="s5cmd --profile gcs --endpoint-url https://storage.googleapis.com --dry-run --log debug --stat"
 alias ytdl="yt-dlp --cookies-from-browser chrome --js-runtime node -k"
-hfdl() {
-    if [[ -z "$1" ]]; then
-        echo "Usage: hfdl <huggingface_url>"
-        return 1
-    fi
+# hfdl() {
+#     if [[ -z "$1" ]]; then
+#         echo "Usage: hfdl <huggingface_url>"
+#         return 1
+#     fi
 
-    local URL=$1
-    local REPO_TYPE="model"
-    local REPO_ID=""
-    local FILE_PATH=""
+#     local URL=$1
+#     local REPO_TYPE="model"
+#     local REPO_ID=""
+#     local FILE_PATH=""
 
-    # Remove protocol and domain
-    local CLEAN_URL=${URL#*huggingface.co/}
+#     # Remove protocol and domain
+#     local CLEAN_URL=${URL#*huggingface.co/}
 
-    # Determine Repo Type and ID
-    if [[ "$CLEAN_URL" == datasets/* ]]; then
-        REPO_TYPE="dataset"
-        # Extract: user/repo from datasets/user/repo/...
-        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
-        # Extract file path: skip 'datasets/user/repo/blob/branch/' (5 segments)
-        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
-    elif [[ "$CLEAN_URL" == spaces/* ]]; then
-        REPO_TYPE="space"
-        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
-        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
-    else
-        REPO_TYPE="model"
-        # Extract: user/repo from user/repo/...
-        REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f1,2)
-        # Extract file path: skip 'user/repo/blob/branch/' (4 segments)
-        FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f5-)
-    fi
+#     # Determine Repo Type and ID
+#     if [[ "$CLEAN_URL" == datasets/* ]]; then
+#         REPO_TYPE="dataset"
+#         # Extract: user/repo from datasets/user/repo/...
+#         REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
+#         # Extract file path: skip 'datasets/user/repo/blob/branch/' (5 segments)
+#         FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
+#     elif [[ "$CLEAN_URL" == spaces/* ]]; then
+#         REPO_TYPE="space"
+#         REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f2,3)
+#         FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f6-)
+#     else
+#         REPO_TYPE="model"
+#         # Extract: user/repo from user/repo/...
+#         REPO_ID=$(echo "$CLEAN_URL" | cut -d'/' -f1,2)
+#         # Extract file path: skip 'user/repo/blob/branch/' (4 segments)
+#         FILE_PATH=$(echo "$CLEAN_URL" | cut -d'/' -f5-)
+#     fi
 
-    echo "Downloading from $REPO_TYPE: $REPO_ID"
-    echo "File: $FILE_PATH"
+#     echo "Downloading from $REPO_TYPE: $REPO_ID"
+#     echo "File: $FILE_PATH"
 
-    huggingface-cli download "$REPO_ID" \
-        --repo-type "$REPO_TYPE" \
-        --include "$FILE_PATH" \
-        --local-dir . \
-        --local-dir-use-symlinks False
-}
+#     huggingface-cli download "$REPO_ID" \
+#         --repo-type "$REPO_TYPE" \
+#         --include "$FILE_PATH" \
+#         --local-dir . \
+#         --local-dir-use-symlinks False
+# }
 
 gif() {
     if [ -z "$1" ]; then
@@ -358,10 +358,26 @@ tar_copy() {
     tar -cf - -C "$src" . | tar -xf - -C "$full_dest"
 }
 
-download_hf () {
-    hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $2
+hfdl () {
+    if [[ $# -eq 1 ]]; then
+        # Extract the last part of the source path
+        local last_part=$(echo $1 | rev | cut -d'/' -f1 | rev)
+        hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $last_part
+    else
+        hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $2
+    fi
 }
 
-upload_hf () {
-    hf buckets sync $1 hf://buckets/nvidia/camera-cross-embodiment/$2
+hful () {
+    if [ $# -ne 2 ]; then
+        echo "Usage: hful <file_path> <bucket_path>"
+        return 1
+    fi
+    if [ -f $1 ]; then
+        command="hf buckets cp $1 hf://buckets/nvidia/camera-cross-embodiment/$2"
+    else
+        command="hf buckets sync $1 hf://buckets/nvidia/camera-cross-embodiment/$2"
+    fi
+    echo "running command: $command"
+    eval $command
 }
