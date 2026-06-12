@@ -28,6 +28,9 @@ if [ $arch == "x86_64" ]; then
     wget https://github.com/sharkdp/fd/releases/download/v10.4.2/fd-musl_10.4.2_amd64.deb
     dpkg-deb -x fd-musl_10.4.2_amd64.deb $HOME/.local
 
+    wget https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_linux_amd64_v0.18.1.tar.gz
+    tar -xzf mutagen_linux_amd64_v0.18.1.tar.gz -C $HOME/.local/usr/bin
+
 
 elif [ $arch == "aarch64" ]; then
 
@@ -47,6 +50,9 @@ elif [ $arch == "aarch64" ]; then
 
     wget https://github.com/sharkdp/fd/releases/download/v10.4.2/fd-musl_10.4.2_arm64.deb
     dpkg-deb -x fd-musl_10.4.2_arm64.deb $HOME/.local
+
+    wget https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_linux_arm64_v0.18.1.tar.gz
+    tar -xzf mutagen_linux_arm64_v0.18.1.tar.gz -C $HOME/.local/usr/bin
 
 fi
 
