@@ -317,12 +317,55 @@ tar_copy() {
 }
 
 hfdl () {
-    if [[ $# -eq 1 ]]; then
-        # Extract the last part of the source path
-        local last_part=$(echo $1 | rev | cut -d'/' -f1 | rev)
-        hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $last_part
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: hfdl <bucket_path> [local_dest]"
+        return 1
+    fi
+
+    local bucket_root="hf://buckets/nvidia/camera-cross-embodiment"
+    local src="$bucket_root/$1"
+    local dir_name=$(basename "$1")
+
+    local dest
+    if [ $# -eq 2 ]; then
+        dest="${2%/}" # Remove trailing slash
     else
-        hf buckets sync hf://buckets/nvidia/camera-cross-embodiment/$1 $2
+        dest="."
+    fi
+
+    # Imitate `cp -r remote dest`. If dest already exists and is non-empty,
+    # download into dest/<dirname> so the file levels stay aligned.
+    local target="$dest"
+    if [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null)" ]; then
+        target="$dest/$dir_name"
+        echo "Local dest '$dest' already exists and is non-empty -> downloading into '$target'"
+    else
+        echo "Local dest '$dest' is empty or missing -> downloading into '$target'"
+    fi
+
+    echo ""
+    echo "=== Already existing entries under $dest ==="
+    if [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null)" ]; then
+        ls -1 "$dest"
+    else
+        echo "(none)"
+    fi
+
+    echo ""
+    echo "=== Expected new entries under $target ==="
+    hf buckets ls "$src" -q 2>/dev/null | sed "s|^$1/|$target/|"
+
+    echo ""
+    local command="hf buckets sync $src $target"
+    echo "running command: $command"
+    printf "Proceed? [y/N] "
+    local reply
+    read reply
+    if [ "$reply" = "y" ] || [ "$reply" = "Y" ]; then
+        eval $command
+    else
+        echo "Aborted."
+        return 1
     fi
 }
 
@@ -331,11 +374,93 @@ hful () {
         echo "Usage: hful <file_path> <bucket_path>"
         return 1
     fi
-    if [ -f $1 ]; then
-        command="hf buckets cp $1 hf://buckets/nvidia/camera-cross-embodiment/$2"
-    else
-        command="hf buckets sync $1 hf://buckets/nvidia/camera-cross-embodiment/$2"
+
+    local src="${1%/}" # Remove trailing slash
+    local bucket_root="hf://buckets/nvidia/camera-cross-embodiment"
+    local dest="$bucket_root/$2"
+
+    # Single file: plain copy, like `cp file dest`
+    if [ -f "$src" ]; then
+        local command="hf buckets cp $src $dest"
+        echo "running command: $command"
+        eval $command
+        return $?
     fi
+
+    if [ ! -d "$src" ]; then
+        echo "Error: $src is neither a file nor a directory."
+        return 1
+    fi
+
+    # Directory: imitate `cp -r dir dest`. If dest already exists and is
+    # non-empty, copy into dest/<dirname> so the file levels stay aligned.
+    local dir_name=$(basename "$src")
+    local existing
+    existing=$(hf buckets ls "$dest" -q 2>/dev/null)
+    local target="$dest"
+    if [ -n "$existing" ]; then
+        target="$dest/$dir_name"
+        echo "Destination '$2' already exists and is non-empty -> syncing into '$2/$dir_name'"
+    else
+        echo "Destination '$2' is empty or missing -> syncing into '$2'"
+    fi
+
+    echo ""
+    echo "=== Already existing entries under $dest ==="
+    if [ -n "$existing" ]; then
+        hf buckets ls "$dest" -h 2>/dev/null
+    else
+        echo "(none)"
+    fi
+
+    echo ""
+    echo "=== Expected new entries under $target ==="
+    local target_rel="${target#$bucket_root/}"
+    (cd "$src" && find . -mindepth 1 -maxdepth 1 | sed "s|^\./|$target_rel/|")
+
+    echo ""
+    local command="hf buckets sync $src $target"
     echo "running command: $command"
-    eval $command
+    printf "Proceed? [y/N] "
+    local reply
+    read reply
+    if [ "$reply" = "y" ] || [ "$reply" = "Y" ]; then
+        eval $command
+    else
+        echo "Aborted."
+        return 1
+    fi
+}
+
+hfrm () {
+    if [ $# -ne 1 ]; then
+        echo "Usage: hfrm <bucket_path>"
+        return 1
+    fi
+
+    local bucket_root="hf://buckets/nvidia/camera-cross-embodiment"
+    local target="$bucket_root/$1"
+
+    local existing
+    existing=$(hf buckets ls "$target" -q 2>/dev/null)
+    if [ -z "$existing" ]; then
+        echo "Nothing to remove: '$1' is empty or does not exist."
+        return 1
+    fi
+
+    echo "=== Entries to be removed under $target ==="
+    hf buckets ls "$target" -h 2>/dev/null
+
+    echo ""
+    local command="hf buckets rm $target -R -y"
+    echo "running command: $command"
+    printf "Recursively remove everything under '$1'? [y/N] "
+    local reply
+    read reply
+    if [ "$reply" = "y" ] || [ "$reply" = "Y" ]; then
+        eval $command
+    else
+        echo "Aborted."
+        return 1
+    fi
 }
