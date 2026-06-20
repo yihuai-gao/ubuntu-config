@@ -278,6 +278,16 @@ gif() {
     fi
 
     local input="$1"
+    # if input is a directory, then convert all videos in the directory to gif
+    if [ -d "$input" ]; then
+        for file in "$input"/*.mp4; do
+            if [ -f "$file" ]; then
+                gif "$file"
+            fi
+        done
+        return 0
+    fi
+
     local output="${input%.*}.gif"
 
     echo "Optimizing $input for a smaller file size..."

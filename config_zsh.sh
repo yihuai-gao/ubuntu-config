@@ -21,6 +21,9 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 
 # Alternative (requries Nerd Fonts) ZSH_THEME="powerlevel10k/powerlevel10k"
 
+# export EDITOR='f() { if [ $# -gt 0 ]; then cursor --wait "$@"; else cursor; fi }; f' To use cursor as the default editor in yazi etc.
+
+
 # Create a backup of zshrc. If you have modified it, please remember to copy the modified content to the new zshrc.
 mv ~/.zshrc ~/.zshrc_bak
 touch ~/.zshrc
