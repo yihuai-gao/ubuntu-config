@@ -1394,6 +1394,12 @@
     },
     {
         "key": "ctrl+shift+c",
-        "command": "claudeVSCodeSessionsList.focus"
+        "command": "claudeVSCodeSessionsList.focus",
+        "when": "!terminalFocus || !terminalTextSelected"
+    },
+    {
+        "key": "ctrl+shift+c",
+        "command": "workbench.action.terminal.copySelection",
+        "when": "terminalFocus && terminalHasBeenCreated && terminalTextSelected || terminalFocus && terminalProcessSupported && terminalTextSelected"
     }
 ]

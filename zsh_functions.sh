@@ -252,7 +252,7 @@ function port_kill() {
 alias cursor_pull="~/ubuntu-config/config_cursor.sh pull"
 alias cursor_push="~/ubuntu-config/config_cursor.sh push"
 
-alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai su-vpn.stanford.edu"
+alias vpn="sudo openconnect --useragent=AnyConnect --no-external-auth --authgroup='Stanford' --user=yihuai -s 'vpn-slice realdesktop007.stanford.edu yihuai-desktop001.stanford.edu' su-vpn.stanford.edu"
 alias ca="conda activate"
 # alias f="fzf | sort"
 alias ls="ls -lah --color=auto"
