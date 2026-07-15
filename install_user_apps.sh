@@ -61,8 +61,10 @@ apt download neofetch
 apt download x11-apps
 apt download htop
 apt download gifsicle
+apt download bsdextrautils  # provides `column`
 
 dpkg-deb -x zoxide* $HOME/.local
+dpkg-deb -x bsdextrautils* $HOME/.local
 dpkg-deb -x neofetch* $HOME/.local
 dpkg-deb -x x11-apps* $HOME/.local
 dpkg-deb -x gifsicle* $HOME/.local
