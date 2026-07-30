@@ -97,3 +97,4 @@ Group findings by severity. Skip empty groups. Reference exact locations as clic
 - **No false alarms.** Verify a concern against the actual surrounding code before reporting it. If unsure whether something is a real problem, say so explicitly and explain the condition under which it would be.
 - **Prioritize.** Lead with correctness bugs; keep style nits brief and clearly separated.
 - **Respect intent.** If a change looks deliberate but unusual, flag it as a question rather than asserting it's wrong.
+- **Don't trust any comment at all.** Always assume the comment doesn't exist / is incorrect when reviewing the code — judge the code purely by what it does, never by what a comment claims it does. Additionally, double check whether the code is consistent with any comments in the updated files, and flag every comment (including docstrings) that contradicts the actual behavior of the code.
