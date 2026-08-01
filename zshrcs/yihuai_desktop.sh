@@ -23,7 +23,7 @@ source $ZSH/oh-my-zsh.sh
 export PATH="$HOME/.local/usr/bin:$PATH"
 # export EDITOR="vim"
 # export EDITOR="cursor --wait"
-export EDITOR='f() { if [ $# -gt 0 ]; then cursor --wait "$@"; else cursor; fi }; f'
+export EDITOR='f() { if [ $# -gt 0 ]; then code --wait "$@"; else code; fi }; f'
 
 # Costomized zsh-autocomplete settings: please refer to https://github.com/marlonrichert/zsh-autocomplete
 #   Make Enter submit the command line straight from the menu

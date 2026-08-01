@@ -68,7 +68,7 @@ function scp_pull() {
 }
 
 
-alias c="cursor"
+alias c="code"
 alias hn="hostname"
 alias ze="zoxide edit"
 alias ncdu="ncdu -t32 -1x"
@@ -249,8 +249,8 @@ function port_kill() {
     lsof -i :$1 | tail -n +2 | awk '{print $2}' | xargs kill -9
 }
 
-alias cursor_pull="~/ubuntu-config/config_cursor.sh pull"
-alias cursor_push="~/ubuntu-config/config_cursor.sh push"
+alias code_pull="~/ubuntu-config/config_vscode.sh pull"
+alias code_push="~/ubuntu-config/config_vscode.sh push"
 
 alias ca="conda activate"
 # alias f="fzf | sort"
