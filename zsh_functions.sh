@@ -292,12 +292,15 @@ gif() {
 
     echo "Optimizing $input for a smaller file size..."
 
-    # Optimization 1: Max colors limited to 128 (down from 256)
-    # Optimization 2: Use 'stats_mode=diff' to only update moving pixels
+    # Keep native resolution; shrink size via fps=10, 128 colors,
+    # 'stats_mode=diff' palette, coarse bayer dither (compresses better),
+    # and 'diff_mode=rectangle' so only changed regions are re-encoded
     ffmpeg -i "$input" -vf \
-    "fps=10,scale=240:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=1" \
+    "fps=10,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle" \
     -y "$output"
-    # gifsicle -O3 --lossy=30 --colors 128 $output -o $output
+    if command -v gifsicle >/dev/null 2>&1; then
+        gifsicle -O3 --lossy=30 "$output" -o "$output"
+    fi
 
     echo "Done! Check $output"
 }

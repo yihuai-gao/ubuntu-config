@@ -1284,5 +1284,19 @@
         "key": "ctrl+shift+c",
         "command": "workbench.action.terminal.copySelection",
         "when": "terminalFocus && terminalHasBeenCreated && terminalTextSelected || terminalFocus && terminalProcessSupported && terminalTextSelected"
+    },
+    {
+        "key": "ctrl+escape",
+        "command": "-claude-vscode.focus",
+        "when": "editorTextFocus && !config.claudeCode.useTerminal"
+    },
+    {
+        "key": "ctrl+shift+m",
+        "command": "-workbench.actions.view.problems",
+        "when": "workbench.panel.markers.view.active"
+    },
+    {
+        "key": "ctrl+m ctrl+s",
+        "command": "workbench.action.keybindingsReference"
     }
 ]

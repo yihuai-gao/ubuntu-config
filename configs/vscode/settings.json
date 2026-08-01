@@ -177,7 +177,7 @@
     "terminal.integrated.enableMultiLinePasteWarning": false,
     "terminal.integrated.scrollback": 100000,
     "extensions.autoCheckUpdates": false,
-    "extensions.autoUpdate": false,
+    "extensions.autoUpdate": "off",
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
@@ -186,7 +186,6 @@
         "DISPLAY": "127.0.0.1:10.0"
     },
     "debug.allowBreakpointsEverywhere": true,
-    "window.commandCenter": false,
     "latex-workshop.linting.chktex.exec.path": "/Library/TeX/texbin/chktex",
     "latex-workshop.latex.autoBuild.run": "onSave",
     "git.openRepositoryInParentFolders": "always",
@@ -212,7 +211,7 @@
     "workbench.editor.wrapTabs": true,
     "search.useParentIgnoreFiles": true,
     "gitlens.codeLens.enabled": false,
-    "workbench.colorTheme": "Default Dark+",
+    "workbench.colorTheme": "Dark+",
     "zenMode.hideLineNumbers": false,
     "zenMode.centerLayout": false,
     "notebook.stickyScroll.enabled": true,
@@ -226,5 +225,9 @@
     "git.replaceTagsWhenPull": true,
     "claudeCode.allowDangerouslySkipPermissions": true,
     "claudeCode.initialPermissionMode": "bypassPermissions",
-    "workbench.layoutControl.enabled": false
+    "workbench.layoutControl.enabled": false,
+    "window.commandCenter": false,
+    "workbench.experimental.modernUI": false,
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilotcli:"
 }
