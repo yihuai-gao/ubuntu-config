@@ -25,9 +25,13 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 
 
 # Create a backup of zshrc. If you have modified it, please remember to copy the modified content to the new zshrc.
-mv ~/.zshrc ~/.zshrc_bak
-touch ~/.zshrc
-echo '
+# Never clobber an existing backup: rerunning this script would otherwise destroy the original.
+if [ -e ~/.zshrc ] && [ ! -e ~/.zshrc_bak ]; then
+    mv ~/.zshrc ~/.zshrc_bak
+fi
+: > ~/.zshrc
+cat <<'ZSHRC_EOF' >> ~/.zshrc
+
 export PATH=$PATH:${HOME}/.local/bin
 export TZ="America/Los_Angeles"
 
@@ -111,7 +115,7 @@ source <(fzf --zsh)
 # module load slurm
 
 
-' >> ~/.zshrc
+ZSHRC_EOF
 
 # Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
 # cp ./p10k.zsh ~/.p10k.zsh

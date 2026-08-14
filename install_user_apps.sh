@@ -73,5 +73,8 @@ cd $file_dir
 
 ln -s $CONDA_PREFIX/bin/nvitop $HOME/.local/usr/bin/nvitop
 
+# Install yazi config (keymap: A creates a directory)
+$file_dir/config_yazi.sh push
+
 # wget https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_linux_amd64.deb
 # dpkg-deb -x s5cmd_2.3.0_linux_amd64.deb $HOME/.local
