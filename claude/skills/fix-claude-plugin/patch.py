@@ -14,17 +14,14 @@ Current patches (see SKILL.md for full background on each):
    ~/.claude/keybindings.json (terminal-CLI only) or VS Code keybindings.
 
 2. [extension.js] Honor `remoteControlAtStartup`.
-   Auto-enable IS wired (verified 2.1.207): on init the host checks
-   `remoteControlAutoEnableOn(g) && g.remote_control_auto_enable && ...`
-   then calls `toggleRemoteControl`. But `remoteControlAutoEnableOn(e)`
-   returns `e.ide_rc_auto_enable_gate===true` — the GrowthBook rollout
-   kill-switch (`tengu_ide_rc_auto_enable`, default false), independent of
-   your setting. Until Anthropic flips it, the setting is silently ignored
-   in the IDE. We force the gate method `return!0`; the
-   `remote_control_auto_enable` check (your remoteControlAtStartup) stays,
-   so auto-enable still follows settings.json.
-   (Builds ~2.1.181-2.1.201 briefly removed this method; on those the patch
-   reports NOT FOUND. 2.1.203+ restored it.)
+   Auto-enable IS wired, but AND-gated on `ide_rc_auto_enable_gate` — the
+   GrowthBook rollout kill-switch (`tengu_ide_rc_auto_enable`, default
+   false), independent of your setting. Until Anthropic flips it, the
+   setting is silently ignored in the IDE. We kill only that gate and keep
+   the `remote_control_auto_enable` check (your remoteControlAtStartup), so
+   auto-enable follows settings.json exactly. Two code shapes are handled
+   (2.1.233+ helper form, and the older inline-gate method); see the patch
+   entry. Builds ~2.1.181-2.1.201 had neither -> NOT FOUND.
 
 3. [extension.js] Start every session in "auto" permission mode.
    getInitialPermissionMode() otherwise resolves: claudeCode.initialPermissionMode
@@ -51,6 +48,11 @@ from pathlib import Path
 #   replace   : replacement (callable taking the match, or a string)
 #   already   : compiled regex that is True iff this file is ALREADY patched
 #               (used to distinguish "already done" from "not found / changed")
+#
+# A patch may instead supply `alts`: a list of (find, replace, already)
+# triples, for behaviors whose shipping code shape differs across extension
+# versions. The first variant that matches is applied; the patch counts as
+# "already patched" if ANY variant's `already` matches.
 # ---------------------------------------------------------------------------
 
 PATCHES = [
@@ -75,28 +77,60 @@ PATCHES = [
     {
         "name": "remoteControlAtStartup rollout gate -> always on",
         "target": "extension.js",
-        # Current shipping form (verified 2.1.207): auto-enable is fully
-        # wired, but AND-gated on the GrowthBook rollout kill-switch:
-        #   remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}
-        # The call site is
-        #   this.remoteControlAutoEnableOn(g)&&g.remote_control_auto_enable
-        #   &&channel.remoteControlState==="disconnected"&&... this.toggleRemoteControl(...)
-        # so forcing this method to return true, while leaving
-        # g.remote_control_auto_enable (your remoteControlAtStartup setting)
-        # intact, makes auto-enable follow your settings.json exactly.
-        # NOTE: builds ~2.1.181-2.1.201 briefly stripped this method out
-        # entirely (NOT FOUND on those) before 2.1.203+ restored it.
-        # Only the parameter name can change between releases.
-        "find": re.compile(
-            r'remoteControlAutoEnableOn\((\w+)\)\{'
-            r'return \1\.ide_rc_auto_enable_gate===!0\}'
-        ),
-        "replace": lambda m: (
-            f'remoteControlAutoEnableOn({m.group(1)}){{return!0}}'
-        ),
-        "already": re.compile(
-            r'remoteControlAutoEnableOn\(\w+\)\{return!0\}'
-        ),
+        # Two shipping shapes seen so far; both AND-gate auto-enable on the
+        # GrowthBook rollout kill-switch `ide_rc_auto_enable_gate`
+        # (tengu_ide_rc_auto_enable, default false). In both we kill ONLY the
+        # gate and keep the `remote_control_auto_enable` check (= your
+        # remoteControlAtStartup setting), so auto-enable follows settings.json.
+        #
+        # (a) 2.1.233+ : the gate moved into a module-level helper that also
+        #     folds in the setting check, and the call site no longer tests
+        #     the setting separately:
+        #       remoteControlAutoEnableOn(e){return aTe(e)}
+        #       function aTe(e){if(e.remote_control_auto_enable!==!0)return!1;
+        #         return e.remote_control_auto_on_by_default===!1
+        #             ||e.ide_rc_auto_enable_gate===!0}
+        #     -> replace the second return with `return!0`. (Forcing
+        #     remoteControlAutoEnableOn itself to true would be WRONG here: it
+        #     would auto-connect even with the setting off.)
+        #
+        # (b) ~2.1.203-2.1.23x : the method carried the gate inline and the
+        #     call site tested the setting itself:
+        #       remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}
+        #       ...this.remoteControlAutoEnableOn(g)&&g.remote_control_auto_enable&&...
+        #     -> force the method to `return!0`.
+        #
+        # Builds ~2.1.181-2.1.201 had neither (NOT FOUND on those).
+        # Only minified parameter names change between releases.
+        "alts": [
+            (
+                re.compile(
+                    r'\{if\((\w+)\.remote_control_auto_enable!==!0\)return!1;'
+                    r'return \1\.remote_control_auto_on_by_default===!1'
+                    r'\|\|\1\.ide_rc_auto_enable_gate===!0\}'
+                ),
+                lambda m: (
+                    f'{{if({m.group(1)}.remote_control_auto_enable!==!0)'
+                    f'return!1;return!0}}'
+                ),
+                re.compile(
+                    r'\{if\(\w+\.remote_control_auto_enable!==!0\)'
+                    r'return!1;return!0\}'
+                ),
+            ),
+            (
+                re.compile(
+                    r'remoteControlAutoEnableOn\((\w+)\)\{'
+                    r'return \1\.ide_rc_auto_enable_gate===!0\}'
+                ),
+                lambda m: (
+                    f'remoteControlAutoEnableOn({m.group(1)}){{return!0}}'
+                ),
+                re.compile(
+                    r'remoteControlAutoEnableOn\(\w+\)\{return!0\}'
+                ),
+            ),
+        ],
     },
     {
         "name": 'initial permission mode -> "auto" (never bypass)',
@@ -145,15 +179,21 @@ def patch_file(js: Path, patches) -> dict:
     new = text
     changed = False
     for p in patches:
-        patched, n = p["find"].subn(p["replace"], new)
-        if n > 0:
-            new = patched
-            changed = True
-            report["results"].append((p["name"], f"patched ({n})"))
-        elif p["already"].search(new):
-            report["results"].append((p["name"], "already patched"))
-        else:
-            report["results"].append((p["name"], "NOT FOUND (verify manually)"))
+        alts = p.get("alts") or [(p["find"], p["replace"], p["already"])]
+        status = None
+        for find, replace, _already in alts:
+            patched, n = find.subn(replace, new)
+            if n > 0:
+                new = patched
+                changed = True
+                status = f"patched ({n})"
+                break
+        if status is None:
+            if any(already.search(new) for _f, _r, already in alts):
+                status = "already patched"
+            else:
+                status = "NOT FOUND (verify manually)"
+        report["results"].append((p["name"], status))
 
     if changed:
         bak = js.with_suffix(".js.prepatch-bak")

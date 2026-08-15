@@ -43,30 +43,44 @@ The patch drops the cycle call, leaving shift+tab swallowed.
 
 ### 2. `remoteControlAtStartup` honored  (`extension.js`)
 
-Auto-enable is fully implemented (verified in 2.1.207), but double-gated. On
-each session's init response the host runs:
+Auto-enable is fully implemented, but double-gated: your setting **and** the
+GrowthBook rollout kill-switch `ide_rc_auto_enable_gate` (the CLI's
+`tengu_ide_rc_auto_enable`, default false). Until Anthropic flips that gate for
+your account, the setting is silently ignored in the IDE (terminal CLI sessions
+are unaffected). The patch kills **only the gate**, keeping the
+`remote_control_auto_enable` check, so auto-enable still strictly follows
+`remoteControlAtStartup` in `~/.claude/settings.json`.
+
+Two code shapes exist; `patch.py` handles both.
+
+**2.1.233+** — the gate lives in a module-level helper that also folds in the
+setting check, and the call site no longer tests the setting separately:
 
 ```js
-this.remoteControlAutoEnableOn(g)          // = g.ide_rc_auto_enable_gate===true  <- GB rollout gate
-  && g.remote_control_auto_enable          // <- your remoteControlAtStartup setting
-  && channel.remoteControlState==="disconnected"
-  && !isTeleportedSession
-) this.toggleRemoteControl(channel, true)
+remoteControlAutoEnableOn(e){return aTe(e)}
+function aTe(e){
+  if(e.remote_control_auto_enable!==!0) return!1;      // <- your setting (kept)
+  return e.remote_control_auto_on_by_default===!1
+      || e.ide_rc_auto_enable_gate===!0                // <- GB rollout gate (patched to return!0)
+}
 ```
 
-with `remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}`.
-`ide_rc_auto_enable_gate` is the CLI's `tengu_ide_rc_auto_enable` GrowthBook
-staged-rollout kill-switch (default false). Until Anthropic flips it for your
-account, the setting is silently ignored in the IDE (terminal CLI sessions are
-unaffected). The patch makes the gate method `return!0`; the
-`remote_control_auto_enable` check (your setting) stays, so auto-enable still
-strictly follows `remoteControlAtStartup` in `~/.claude/settings.json`.
+Here forcing `remoteControlAutoEnableOn` itself to `return!0` would be **wrong**
+— it would auto-connect even with the setting off. Only the second `return` is
+replaced.
 
-> Version note: builds ~2.1.181–2.1.201 briefly removed `remoteControlAutoEnableOn`
-> entirely (patch reports NOT FOUND on those); 2.1.203+ restored it. Cursor
-> pins the extension via OpenVSX and may lag behind the VS Marketplace — if
-> stuck on a pre-2.1.203 build, side-load a newer targeted VSIX from
-> `https://open-vsx.org/api/Anthropic/claude-code/<target>/<version>/file/...`
+**~2.1.203–2.1.23x** — the gate was inline in the method, and the call site
+tested the setting itself:
+
+```js
+remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}   // -> return!0
+// call site: this.remoteControlAutoEnableOn(g) && g.remote_control_auto_enable && ...
+```
+
+> Version note: builds ~2.1.181–2.1.201 had neither form (patch reports NOT
+> FOUND on those). Cursor pins the extension via OpenVSX and may lag behind the
+> VS Marketplace — if stuck on a pre-2.1.203 build, side-load a newer targeted
+> VSIX from `https://open-vsx.org/api/Anthropic/claude-code/<target>/<version>/file/...`
 > (e.g. `linux-x64`) via Command Palette → "Extensions: Install from VSIX".
 
 Prerequisites if it "doesn't work": `"remoteControlAtStartup": true` in
@@ -105,7 +119,8 @@ reports `NOT FOUND`, the extension restructured that code: grep the target
 bundle for the anchor strings (`key==="Tab"` + `shiftKey`;
 `ide_rc_auto_enable_gate` / `remoteControlAutoEnableOn`;
 `getInitialPermissionMode`), locate the new form, and update that patch's
-`find`/`already` regexes in [patch.py](patch.py). If an anchor string is gone
+`find`/`already` regexes in [patch.py](patch.py) — or add it as another
+variant in that patch's `alts` list, so older builds keep working. If an anchor string is gone
 entirely, Anthropic may have shipped the behavior properly (e.g. rollout
 complete) — test unpatched before re-adding.
 
