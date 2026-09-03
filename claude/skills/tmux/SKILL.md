@@ -1,11 +1,18 @@
 ---
 name: tmux
-description: Spawn and manage Claude Code sessions running inside tmux (the claudeN sessions). Use whenever the user asks to spawn/start/open a new Claude session in tmux, "new cloud session in tmux" (voice-to-text often garbles this as "cloud concession in Temux"), list the running Claude tmux sessions, check what a session is doing, send a prompt to one, or kill/clean up one. Triggers on any mention of tmux together with Claude sessions.
+description: Spawn and manage Claude Code sessions running inside tmux (the claudeN sessions). Use whenever the user asks to spawn/start/open a new Claude session in tmux, "new cloud session in tmux" (voice-to-text often garbles this as "cloud concession in Temux"), list the running Claude tmux sessions, check what a session is doing, send a prompt to one, or kill/clean up one. Triggers on any mention of tmux together with Claude sessions. A bare `/tmux` (no arguments) means SPAWN a new session — do not list-and-ask.
 ---
 
 # Claude-in-tmux Session Manager
 
 Manage the fleet of Claude Code instances the user keeps running in detached tmux sessions (`claude2`, `claude3`, ... — one window each, all running `claude` in a repo checkout).
+
+## Default action: no arguments = spawn
+
+`/tmux` invoked with no arguments (or an empty/blank argument) means **spawn a new session** in the
+current repo directory — go straight to the "Spawn a new session" steps below. Do NOT list the
+fleet and ask what the user wants; listing/inspecting/sending/killing happen only when the
+arguments (or the user's words) ask for them. (User directive 2026-08-22.)
 
 ## Conventions
 

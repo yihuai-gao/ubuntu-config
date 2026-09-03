@@ -3,7 +3,10 @@
 # Install plugins for oh-my-zsh
 # HOME="/scratch/m000073/yihuai" # For Marlowe server
 
+# Pin zsh-autocomplete to a known-good commit (newer versions have regressions)
+ZSH_AUTOCOMPLETE_COMMIT=316c588a92e3444e919ca9a341fc8894c82800a2
 git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
+git -C ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete checkout $ZSH_AUTOCOMPLETE_COMMIT
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 # git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
@@ -14,6 +17,7 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 # Or you can setup your https proxy in through `git config` and continue to use https cloning.
 
 # git clone git@github.com:marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
+# git -C ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete checkout $ZSH_AUTOCOMPLETE_COMMIT
 # git clone git@github.com:zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
 # git clone git@github.com:zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 # git clone git@github.com:skywind3000/z.lua.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua

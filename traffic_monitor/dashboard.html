@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic Monitor</title>
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --hover:rgba(11,11,11,.04);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --other:#b5b3ab; --critical:#d03b3b; --good:#006300;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --hover:rgba(255,255,255,.05);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --other:#55544f; --critical:#d03b3b; --good:#0ca30c;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --hover:rgba(255,255,255,.05);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --other:#55544f; --critical:#d03b3b; --good:#0ca30c;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface)}
+header h1{font-size:16px;font-weight:600;margin:0}
+.chip{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--ink2);font-size:12px;margin-right:4px}
+.spacer{flex:1}
+header select,header button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer}
+header button.on{background:var(--hover)}
+.status{font-size:12px;color:var(--muted)}
+.status.err{color:var(--critical)}
+main{padding:16px 20px;max-width:1500px;margin:0 auto}
+.banner{background:var(--surface);border:1px solid var(--critical);color:var(--ink);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-height:96px;display:flex;flex-direction:column;gap:2px}
+.tile .label{font-size:12px;color:var(--ink2)}
+.tile .value{font-size:26px;font-weight:600;line-height:1.15;white-space:nowrap}
+.tile .value small{font-size:13px;font-weight:500;color:var(--ink2);margin-left:4px}
+.tile .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile svg{width:100%;height:28px;margin-top:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;min-width:0}
+.card h2{font-size:13px;font-weight:600;margin:0 0 6px;color:var(--ink2)}
+.card h2 span{font-weight:400;color:var(--muted)}
+.chart{position:relative;width:100%;height:230px}
+.chart svg{width:100%;height:100%;display:block}
+.chart .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5;min-width:170px;display:none}
+.tip .t{color:var(--muted);margin-bottom:4px}
+.tip .row{display:flex;justify-content:space-between;gap:12px;line-height:1.5}
+.tip .row .n{display:flex;align-items:center;gap:6px;color:var(--ink2);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tip .row .v{font-variant-numeric:tabular-nums}
+.tip .row.total{border-top:1px solid var(--border);margin-top:3px;padding-top:3px;color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);padding:2px 14px 12px}
+.legend div{display:flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--grid);vertical-align:middle;font-variant-numeric:tabular-nums;white-space:nowrap}
+th{font-weight:600;color:var(--ink2);font-size:12px;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
+th.sorted::after{content:" ▾";color:var(--muted)}
+th.sorted.asc::after{content:" ▴"}
+th:first-child,td:first-child{text-align:left}
+td.proc{max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:normal}
+td.proc .n{font-weight:600}
+td.proc .meta{color:var(--muted);font-size:12px;margin-left:6px}
+td.proc .cmd{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+tr.row{cursor:pointer}
+tr.row:hover{background:var(--hover)}
+tr.row.dead td.proc .n{color:var(--muted);font-weight:500}
+tr.row.idle td{color:var(--muted)}
+tr.detail td{background:var(--hover);padding:6px 10px 10px 28px;white-space:normal}
+.remotes{display:grid;grid-template-columns:auto auto auto auto auto;gap:2px 18px;font-size:12px;color:var(--ink2);width:max-content;max-width:100%}
+.remotes .h{color:var(--muted);font-weight:600}
+.remotes .r{text-align:right}
+td svg.spark{width:110px;height:22px;display:block;margin-left:auto}
+.sparkkey{font-weight:400;color:var(--muted)}
+.tag{display:inline-block;padding:0 6px;border-radius:4px;border:1px solid var(--border);font-size:11px;color:var(--ink2);margin-left:6px;vertical-align:1px}
+.bar{height:4px;border-radius:2px;background:var(--grid);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--s1)}
+.tbl-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Traffic monitor</h1>
+  <div id="ifaces"></div>
+  <span class="status" id="since"></span>
+  <span class="spacer"></span>
+  <span class="status" id="status"></span>
+  <select id="unit" title="Units"><option value="B">bytes/s</option><option value="b">bits/s</option></select>
+  <button id="pause" title="Freeze the view">Pause</button>
+  <button id="theme" title="Toggle light/dark">Theme</button>
+</header>
+<main>
+  <div id="banner" class="banner" hidden></div>
+  <div class="tiles">
+    <div class="tile"><div class="label">Download</div><div class="value" id="rx"></div><div class="sub" id="rxsub"></div><svg id="rxspark"></svg></div>
+    <div class="tile"><div class="label">Upload</div><div class="value" id="tx"></div><div class="sub" id="txsub"></div><svg id="txspark"></svg></div>
+    <div class="tile"><div class="label">Attributed to a process</div><div class="value" id="attr"></div><div class="sub" id="attrsub"></div><div class="bar"><i id="attrbar"></i></div></div>
+    <div class="tile"><div class="label">Active processes</div><div class="value" id="nproc"></div><div class="sub" id="nprocsub"></div></div>
+    <div class="tile"><div class="label">Capture health</div><div class="value" id="health"></div><div class="sub" id="healthsub"></div></div>
+  </div>
+  <div class="cards">
+    <div class="card"><h2>Download by process <span id="rxwin"></span></h2><div class="chart" id="rxchart"></div><div class="tip" id="rxtip"></div></div>
+    <div class="card"><h2>Upload by process <span id="txwin"></span></h2><div class="chart" id="txchart"></div><div class="tip" id="txtip"></div></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="legend" id="legend" style="padding-top:12px"></div>
+    <div class="tbl-wrap">
+    <table id="tbl">
+      <thead><tr>
+        <th data-k="name">Process</th>
+        <th data-k="rx_bps">Down</th>
+        <th data-k="tx_bps">Up</th>
+        <th data-k="rate" title="last 60 s; solid = down, dashed = up">60 s <span class="sparkkey">(— down, ┄ up)</span></th>
+        <th data-k="rx_total">Total down</th>
+        <th data-k="tx_total">Total up</th>
+        <th data-k="conns">Flows</th>
+        <th data-k="user">User</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    </div>
+  </div>
+</main>
+<script>
+'use strict';
+const SLOTS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
+const $ = id => document.getElementById(id);
+let state = null, paused = false, sortKey = 'rate', sortDir = -1;
+const expanded = new Set();
+let unitBits = false;
+try { unitBits = localStorage.getItem('tm.unit') === 'b'; } catch (e) {}
+try { const th = localStorage.getItem('tm.theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
+$('unit').value = unitBits ? 'b' : 'B';
+
+// ---- colour follows the entity: a pid keeps its slot while it is on screen ----
+const slotOf = new Map(), owner = new Array(8).fill(null), lastSeen = new Map();
+function assignSlots(keys) {
+  const now = Date.now();
+  for (const k of keys) {
+    if (slotOf.has(k)) continue;
+    let free = owner.indexOf(null);
+    if (free < 0) {
+      let worst = -1, wt = Infinity;
+      owner.forEach((o, i) => { if (!keys.includes(o) && (lastSeen.get(o) || 0) < wt) { wt = lastSeen.get(o) || 0; worst = i; } });
+      if (worst < 0) continue;
+      slotOf.delete(owner[worst]); free = worst;
+    }
+    owner[free] = k; slotOf.set(k, free);
+  }
+  keys.forEach(k => lastSeen.set(k, now));
+}
+const colorOf = k => k === 'other' ? 'var(--other)' : `var(${SLOTS[slotOf.get(k) ?? 0]})`;
+
+// ---- formatting ----
+function fmtRate(bps) {
+  let v = unitBits ? bps * 8 : bps;
+  const u = unitBits ? ['b/s','kb/s','Mb/s','Gb/s'] : ['B/s','kB/s','MB/s','GB/s'];
+  let i = 0; while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
+  return (v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(1)) + ' ' + u[i];
+}
+function fmtBytes(b) {
+  const u = ['B','kB','MB','GB','TB']; let i = 0; let v = b;
+  while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
+  return (v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(1)) + ' ' + u[i];
+}
+function fmtDur(s) { s = Math.max(0, Math.round(s)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s/60) + ' min'; return (s/3600).toFixed(1) + ' h'; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function entityName(k) {
+  if (k === 'other') return 'other processes';
+  const n = state.history.names[k] || '?';
+  return k === '-1' || k === '-2' ? n : `${n} (${k})`;
+}
+
+// ---- axis helpers ----
+function niceTicks(max, n) {
+  const raw = max / n, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * p).find(s => s >= raw) || raw;
+  const t = []; for (let v = 0; v <= max + 1e-9; v += step) t.push(v);
+  return t;
+}
+
+// ---- stacked area chart ----
+const hoverIdx = {};
+function stackedArea(id, tipId, ts, series) {
+  const box = $(id), tip = $(tipId);
+  const n = ts.length;
+  if (n < 2) { box.innerHTML = '<div class="empty">collecting…</div>'; return; }
+  const W = Math.max(320, box.clientWidth), H = box.clientHeight || 230;
+  const m = { t: 8, r: 10, b: 22, l: 58 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const tops = [], acc = new Array(n).fill(0);
+  series.forEach(s => { const t = new Array(n); for (let j = 0; j < n; j++) { acc[j] += s.values[j] || 0; t[j] = acc[j]; } tops.push(t); });
+  const ymax = Math.max(unitBits ? 125 : 1000, ...acc) * 1.08;
+  const ticks = niceTicks(ymax / (unitBits ? 1 : 1), 4);
+  const x = j => m.l + j * pw / (n - 1), y = v => m.t + ph * (1 - v / ymax);
+  let g = '';
+  for (const tv of ticks) {
+    const yy = y(tv); if (yy < m.t - 1) continue;
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+    g += `<text x="${m.l - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--muted)">${esc(fmtRate(tv).replace('.0',''))}</text>`;
+  }
+  const tEnd = ts[n - 1];
+  for (let j = 0; j < n; j++) {
+    const rel = tEnd - ts[j];
+    if (rel % 60 === 0 || j === n - 1) {
+      const lab = j === n - 1 ? 'now' : `-${rel / 60}m`;
+      g += `<text x="${x(j).toFixed(1)}" y="${H - 6}" text-anchor="${j === n - 1 ? 'end' : 'middle'}" font-size="11" fill="var(--muted)">${lab}</text>`;
+    }
+  }
+  let areas = '';
+  series.forEach((s, i) => {
+    const up = tops[i], lo = i ? tops[i - 1] : null;
+    let d = '';
+    for (let j = 0; j < n; j++) d += (j ? 'L' : 'M') + x(j).toFixed(1) + ',' + y(up[j]).toFixed(1);
+    for (let j = n - 1; j >= 0; j--) d += 'L' + x(j).toFixed(1) + ',' + y(lo ? lo[j] : 0).toFixed(1);
+    areas += `<path d="${d}Z" fill="${colorOf(s.key)}" fill-opacity="0.85" stroke="var(--surface)" stroke-width="1" stroke-linejoin="round"/>`;
+  });
+  const base = `<line x1="${m.l}" x2="${W - m.r}" y1="${(m.t + ph).toFixed(1)}" y2="${(m.t + ph).toFixed(1)}" stroke="var(--axis)"/>`;
+  const hi = hoverIdx[id];
+  let cross = '';
+  if (hi != null && hi < n) cross = `<line x1="${x(hi).toFixed(1)}" x2="${x(hi).toFixed(1)}" y1="${m.t}" y2="${m.t + ph}" stroke="var(--ink2)" stroke-dasharray="3,3"/>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}${areas}${base}${cross}<rect id="${id}-hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/></svg>`;
+  const hit = $(id + '-hit');
+  const show = j => {
+    hoverIdx[id] = j;
+    let html = `<div class="t">${new Date(ts[j] * 1000).toLocaleTimeString()} · ${fmtDur(tEnd - ts[j])} ago</div>`;
+    let tot = 0;
+    [...series].reverse().forEach(s => { const v = s.values[j] || 0; tot += v; if (v > 0) html += `<div class="row"><span class="n"><i class="dot" style="background:${colorOf(s.key)}"></i>${esc(entityName(s.key))}</span><span class="v">${fmtRate(v)}</span></div>`; });
+    html += `<div class="row total"><span class="n">total</span><span class="v">${fmtRate(tot)}</span></div>`;
+    tip.innerHTML = html; tip.style.display = 'block';
+    const card = box.parentElement, cw = card.clientWidth;
+    const px = box.offsetLeft + x(j) * box.clientWidth / W;
+    tip.style.left = (px + 190 > cw ? Math.max(0, px - 12 - tip.offsetWidth) : px + 12) + 'px';
+    tip.style.top = (box.offsetTop + 10) + 'px';
+    const svg = box.firstElementChild;
+    let c = svg.querySelector('.cross'); if (!c) { c = document.createElementNS('http://www.w3.org/2000/svg', 'line'); c.setAttribute('class', 'cross'); c.setAttribute('stroke', 'var(--ink2)'); c.setAttribute('stroke-dasharray', '3,3'); svg.insertBefore(c, hit); }
+    c.setAttribute('x1', x(j)); c.setAttribute('x2', x(j)); c.setAttribute('y1', m.t); c.setAttribute('y2', m.t + ph);
+  };
+  hit.addEventListener('mousemove', ev => {
+    const r = box.getBoundingClientRect();
+    const j = Math.round((ev.clientX - r.left) * W / r.width - m.l) / (pw / (n - 1));
+    show(Math.max(0, Math.min(n - 1, Math.round(j))));
+  });
+  hit.addEventListener('mouseleave', () => { hoverIdx[id] = null; tip.style.display = 'none'; });
+  if (hi != null && hi < n) show(hi);
+}
+
+function sparkline(svg, pts, W, H) {
+  const n = pts.length; if (n < 2) { svg.innerHTML = ''; return; }
+  const max = Math.max(1, ...pts.map(p => Math.max(p[0], p[1])));
+  const x = j => (j * (W - 2) / (n - 1) + 1).toFixed(1), y = v => (H - 1 - (H - 3) * v / max).toFixed(1);
+  const line = k => pts.map((p, j) => (j ? 'L' : 'M') + x(j) + ',' + y(p[k])).join('');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio', 'none');
+  const hasUp = pts.some(p => p[1] > 0);
+  svg.innerHTML = `<path d="${line(0)}" fill="none" stroke="var(--ink2)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>` +
+                  (hasUp ? `<path d="${line(1)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3,2" vector-effect="non-scaling-stroke"/>` : '');
+}
+
+// ---- render ----
+let totalSpark = [];
+function render() {
+  const s = state, t = s.totals;
+  $('ifaces').innerHTML = s.ifaces.map(i => `<span class="chip" title="↓ ${esc(fmtRate(i.rx_bps))} ↑ ${esc(fmtRate(i.tx_bps))}">${esc(i.name)}</span>`).join('');
+  $('since').textContent = 'since ' + new Date(s.started * 1000).toLocaleTimeString() + ' · ' + fmtDur(s.t - s.started);
+  totalSpark.push([t.rx_bps, t.tx_bps]); if (totalSpark.length > 60) totalSpark.shift();
+  $('rx').textContent = fmtRate(t.rx_bps); $('tx').textContent = fmtRate(t.tx_bps);
+  const sumRx = s.ifaces.reduce((a, i) => a + i.rx_total, 0), sumTx = s.ifaces.reduce((a, i) => a + i.tx_total, 0);
+  $('rxsub').textContent = 'interface counters: ' + fmtBytes(sumRx); $('txsub').textContent = 'interface counters: ' + fmtBytes(sumTx);
+  sparkline($('rxspark'), totalSpark.map(p => [p[0], 0]), 200, 28); sparkline($('txspark'), totalSpark.map(p => [p[1], 0]), 200, 28);
+  const tot = t.rx_bps + t.tx_bps, attr = t.attr_rx_bps + t.attr_tx_bps;
+  const pct = tot > 0 ? Math.min(100, 100 * attr / tot) : 100;
+  $('attr').innerHTML = pct.toFixed(0) + '<small>%</small>';
+  $('attrsub').textContent = tot > 0 ? `${fmtRate(attr)} of ${fmtRate(tot)} matched a socket` : 'no traffic this second';
+  $('attrbar').style.width = pct + '%';
+  const active = s.procs.filter(p => p.pid >= 0 && (p.rx_bps + p.tx_bps) > 0).length;
+  $('nproc').textContent = active;
+  $('nprocsub').textContent = `${s.procs.filter(p => p.pid >= 0).length} seen · ${s.meta.flows} flows/s`;
+  const m = s.meta;
+  $('health').innerHTML = m.drops ? `${m.drops}<small>dropped</small>` : 'ok';
+  $('healthsub').textContent = `tick ${m.tick_ms} ms · fd scan ${m.scan_ms} ms · netns ${m.netns}${m.conntrack ? ' · conntrack' : ''}`;
+  const b = $('banner');
+  if (m.errors && m.errors.length) { b.hidden = false; b.textContent = 'capture errors: ' + m.errors.join('; '); } else b.hidden = true;
+
+  // charts
+  const h = s.history, keys = [...h.order];
+  assignSlots(keys);
+  const order = keys.slice().sort((a, b) => slotOf.get(a) - slotOf.get(b)); order.push('other');
+  const mk = dir => order.map(k => ({ key: k, values: h[dir][k] || [] }));
+  const win = h.t.length ? fmtDur(h.t[h.t.length - 1] - h.t[0]) : '';
+  $('rxwin').textContent = win ? `· last ${win}` : ''; $('txwin').textContent = $('rxwin').textContent;
+  stackedArea('rxchart', 'rxtip', h.t, mk('rx'));
+  stackedArea('txchart', 'txtip', h.t, mk('tx'));
+  $('legend').innerHTML = order.map(k => `<div><i class="sw" style="background:${colorOf(k)}"></i>${esc(entityName(k))}</div>`).join('');
+
+  // table
+  const rows = s.procs.slice();
+  const val = p => sortKey === 'rate' ? p.rx_bps + p.tx_bps : p[sortKey];
+  rows.sort((a, b) => { const va = val(a), vb = val(b); if (typeof va === 'string') return sortDir * va.localeCompare(vb); return sortDir * (va - vb) || (b.rx_total + b.tx_total) - (a.rx_total + a.tx_total); });
+  document.querySelectorAll('#tbl th').forEach(th => { th.classList.toggle('sorted', th.dataset.k === sortKey); th.classList.toggle('asc', th.dataset.k === sortKey && sortDir > 0); });
+  let html = '';
+  for (const p of rows) {
+    const idle = p.rx_bps + p.tx_bps === 0;
+    const key = String(p.pid), sw = slotOf.has(key) ? `<i class="sw" style="background:${colorOf(key)};margin-right:6px"></i>` : '<i class="sw" style="background:transparent;margin-right:6px"></i>';
+    const tags = (p.container ? `<span class="tag" title="container cgroup">${esc(p.container)}</span>` : '') + (!p.alive ? '<span class="tag">exited</span>' : '');
+    html += `<tr class="row${p.alive ? '' : ' dead'}${idle ? ' idle' : ''}" data-pid="${p.pid}">` +
+      `<td class="proc">${sw}<span class="n">${esc(p.name)}</span>${p.pid >= 0 ? `<span class="meta">${p.pid}</span>` : ''}${tags}` +
+      (p.cmd ? `<span class="cmd" title="${esc(p.cmd)}">${esc(p.cmd)}</span>` : '') + `</td>` +
+      `<td>${fmtRate(p.rx_bps)}</td><td>${fmtRate(p.tx_bps)}</td>` +
+      `<td><svg class="spark" data-spark="${p.pid}"></svg></td>` +
+      `<td>${fmtBytes(p.rx_total)}</td><td>${fmtBytes(p.tx_total)}</td><td>${p.conns}</td><td>${esc(p.user)}</td></tr>`;
+    if (expanded.has(p.pid)) {
+      html += `<tr class="detail"><td colspan="8">` + (p.remotes.length ?
+        `<div class="remotes"><span class="h">proto</span><span class="h">remote</span><span class="h r">down</span><span class="h r">up</span><span class="h r">last seen</span>` +
+        p.remotes.map(r => `<span>${esc(r.proto)}</span><span>${esc(r.host)}:${r.port}</span><span class="r">${fmtBytes(r.rx)}</span><span class="r">${fmtBytes(r.tx)}</span><span class="r">${fmtDur(r.idle_s)} ago</span>`).join('') + `</div>` :
+        '<span class="status">no remote endpoints recorded</span>') + `</td></tr>`;
+    }
+  }
+  $('rows').innerHTML = html;
+  const byPid = new Map(rows.map(p => [String(p.pid), p]));
+  document.querySelectorAll('svg.spark').forEach(el => sparkline(el, byPid.get(el.dataset.spark).spark, 110, 22));
+}
+
+// ---- events ----
+document.querySelectorAll('#tbl th').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.k; if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = (k === 'name' || k === 'user') ? 1 : -1; }
+  if (state) render();
+}));
+$('rows').addEventListener('click', ev => {
+  const tr = ev.target.closest('tr.row'); if (!tr) return;
+  const pid = Number(tr.dataset.pid); if (expanded.has(pid)) expanded.delete(pid); else expanded.add(pid);
+  if (state) render();
+});
+$('unit').addEventListener('change', ev => { unitBits = ev.target.value === 'b'; try { localStorage.setItem('tm.unit', ev.target.value); } catch (e) {} if (state) render(); });
+$('pause').addEventListener('click', () => { paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').classList.toggle('on', paused); });
+$('theme').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next; try { localStorage.setItem('tm.theme', next); } catch (e) {}
+});
+window.addEventListener('resize', () => { if (state) render(); });
+
+async function poll() {
+  if (!paused) {
+    try {
+      const r = await fetch('/api/state', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      state = await r.json();
+      $('status').textContent = ''; $('status').classList.remove('err');
+      render();
+    } catch (e) { $('status').textContent = 'no data: ' + e.message; $('status').classList.add('err'); }
+  }
+  setTimeout(poll, state ? Math.max(500, state.interval * 1000) : 1000);
+}
+poll();
+</script>
+</body>
+</html>

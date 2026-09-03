@@ -1,11 +1,11 @@
 ---
 name: static-review
-description: Statically review all uncommitted changes in the current git repo — read the diff and surrounding code, then report potential bugs, correctness issues, and improvement opportunities. Use when the user asks to review uncommitted/local/working-tree changes, "review my changes", "static review", "look over my diff", or wants feedback before committing. Pure static analysis — does NOT run builds, tests, linters, or any tools.
+description: Statically review all uncommitted changes in the current git repo — read the diff and surrounding code, report potential bugs, correctness issues, and improvement opportunities, then automatically apply every [easy fix] finding (leaving [substantial] ones for discussion) and propose a commit message. Use when the user asks to review uncommitted/local/working-tree changes, "review my changes", "static review", "look over my diff", or wants feedback before committing. The analysis itself is pure static reading — no builds or tests are run.
 ---
 
 # Static Review
 
-Review uncommitted changes in the current git repository by reading code only. No commands are run beyond `git` inspection — no builds, tests, linters, or formatters.
+Review uncommitted changes in the current git repository by reading code only, then auto-apply the easy fixes. During the ANALYSIS phase no commands are run beyond `git` inspection — no builds, tests, linters, or formatters; after the report, the [easy fix] findings are applied to the working tree (followed by compile/lint checks of the touched files where the repo's conventions call for them).
 
 ## Scope
 
@@ -28,7 +28,18 @@ Review uncommitted changes in the current git repository by reading code only. N
 
 3. **Analyze.** Look for the categories below.
 
-4. **Report.** Produce a structured findings list (format below). Do not modify any files unless the user explicitly asks for fixes afterward.
+4. **Report.** Produce a structured findings list (format below). Never modify any files before the report is presented.
+
+5. **Auto-apply the easy fixes.** Immediately after presenting the report, apply every finding tagged **[easy fix]** — bugs, issues, and suggestions alike — to the working tree, without waiting to be asked. Leave every **[substantial]** finding untouched and list them at the end as open discussion points. Details:
+   - For a mixed finding ("[easy fix] to guard, [substantial] to fix properly"), apply only the easy guard; the proper fix stays a discussion point.
+   - If an easy fix turns out to require design decisions or interface changes mid-edit, stop, reclassify it as [substantial], and say so — never force it through.
+   - Follow the repo's own landing conventions for edits when present (e.g. this checkout's worktree-first + staged-baseline flow, compile/lint gates on touched files).
+   - When a fix changes user-facing text elsewhere (README, docstrings, help strings), update those in the same pass so docs stay consistent with the new behavior.
+   - **Stage every file the fix pass touched (user directive 2026-08-28): `git add` each fixed file right after the edits pass their compile/lint/test gate, without being asked.** Staging is part of landing a fix in this checkout ("land" = diff→apply→add); an unstaged fix over an already-staged hunk is easy to lose and shows up as a confusing `MM`. Stage ONLY the files the fix pass edited — never sweep in unrelated working-tree changes (memory notes, dashboards, another session's edits) — and confirm with `git status --short` afterwards. This is staging, NOT committing: `git commit` stays off-limits unless explicitly asked.
+   - Close the pass with a short per-finding list of what was applied (finding number → file → one-line description), and state that the fixed files are staged.
+   - **The closing [substantial] discussion-point list must be SELF-CONTAINED (user directive 2026-08-24): restate each open finding in full** — clickable location, what's wrong, the concrete consequence, and the suggested fix — never just a one-line label with the finding number. The final message is what the user reads last; a brief recap forces them to scroll back to the report to recover the details.
+
+6. **Generate a commit message.** After the auto-fix pass (or after the user asks for fixes of substantial findings), finish by directly generating a commit message — do not wait to be asked. Default format (user directive 2026-08-17): ONE short imperative summary line of AT MOST 50 characters — at that length it cannot enumerate everything, so name the dominant theme(s) of the FULL uncommitted change set (the original reviewed changes plus the applied fixes, not just the fixes) and drop the rest; expand toward the `commit-message` skill's longer one-sentence style only when the user explicitly asks for a longer message. Present it in a code block, and do NOT run `git commit` unless explicitly asked.
 
 ## What to look for
 
@@ -73,26 +84,33 @@ Review uncommitted changes in the current git repository by reading code only. N
 
 Group findings by severity. Skip empty groups. Reference exact locations as clickable links (`[file.py:42](path/file.py#L42)`).
 
+**Fix-effort classification:** every finding (bugs, issues, AND suggestions) must carry a fix-effort tag:
+- **[easy fix]** — a localized change: a few lines in one or two spots, no design decisions, no interface/contract changes, negligible re-validation (e.g. add a guard, clone a tensor, fix an off-by-one, correct a docstring).
+- **[substantial]** — requires meaningful design or cross-cutting work: touching multiple call sites or layers, changing an interface/data layout/contract, rethinking an algorithm, or needing non-trivial re-validation (e.g. new tests, GPU runs, re-benchmarking) before it can be trusted.
+
+Base the classification on the *smallest correct* fix, not the most thorough one; if the minimal fix is easy but the proper fix is substantial, say so (e.g. "[easy fix] to guard, [substantial] to fix properly"). The tag is load-bearing: everything marked [easy fix] gets auto-applied in Workflow step 5, so classify conservatively — when in doubt, mark [substantial].
+
 ```
 ## Static Review — N files, M findings
 
 ### 🔴 Bugs / correctness
-1. [file.py:120](path/file.py#L120) — <what's wrong and why it matters>
+1. [file.py:120](path/file.py#L120) — **[easy fix]** <what's wrong and why it matters>
    Suggestion: <concrete fix>
 
 ### 🟡 Issues / risks
-...
+2. [file.py:88](path/file.py#L88) — **[substantial]** <what's wrong and why it matters>
+   Suggestion: <concrete fix>
 
 ### 🟢 Suggestions / improvements
 ...
 
 ### Summary
-<1–3 sentence overall assessment + anything that looks intentional but worth confirming>
+<1–3 sentence overall assessment + anything that looks intentional but worth confirming; include a one-line tally, e.g. "4 easy fixes, 2 substantial">
 ```
 
 ## Rules
 
-- **Read-only.** Inspect with `git` and Read. Never edit files, never run tests/linters/builds. If the user wants fixes, offer to apply them in a follow-up.
+- **Read-only analysis; edits only in the fix pass.** Inspect with `git` and Read; never run tests or builds as part of the review. The only file edits are the automatic [easy fix] pass of Workflow step 5 (plus any follow-up fixes the user explicitly requests for [substantial] findings) — never edit before the report is presented, never auto-apply a [substantial] finding, always stage the files a fix pass edited (and only those), and always end a fix pass with the commit message (Workflow step 6).
 - **Be specific.** Every finding cites a concrete location and explains the concrete consequence — no generic advice.
 - **No false alarms.** Verify a concern against the actual surrounding code before reporting it. If unsure whether something is a real problem, say so explicitly and explain the condition under which it would be.
 - **Prioritize.** Lead with correctness bugs; keep style nits brief and clearly separated.
