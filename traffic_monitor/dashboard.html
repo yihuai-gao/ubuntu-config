@@ -32,10 +32,27 @@
 html,body{margin:0;background:var(--page);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface)}
 header h1{font-size:16px;font-weight:600;margin:0}
-.chip{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--ink2);font-size:12px;margin-right:4px}
 .spacer{flex:1}
 header select,header button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer}
 header button.on{background:var(--hover)}
+.host{font-size:13px;font-weight:600;color:var(--ink2);padding:2px 9px;border:1px solid var(--border);border-radius:6px;background:var(--hover)}
+.ifsel{position:relative}
+.ifsel .ifbtn{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.ifsel .ifbtn .caret{font-size:10px;color:var(--muted)}
+.ifsel .ifbtn .sub{font-weight:400;color:var(--muted);font-size:12px}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px;min-width:520px;max-height:70vh;overflow:auto}
+.menu table{width:100%;font-size:13px}
+.menu th{cursor:default;position:static;font-size:11.5px;color:var(--muted);padding:6px 10px 5px}
+.menu td{padding:6px 10px;border-bottom:0}
+.menu tr.mrow{cursor:pointer}
+.menu tr.mrow:hover td{background:var(--hover)}
+.menu tr.mrow.sel td{background:var(--hover)}
+.menu tr.mrow.sel td.nm{font-weight:600}
+.menu tr.mrow.off td{color:var(--muted)}
+.menu td.tot{color:var(--muted);font-size:12px}
+.menu td.nm .meta{color:var(--muted);font-weight:400;margin-left:8px;font-size:12px}
+.menu td.nm .tag{margin-left:8px}
+.menu tr.msep td{padding:0;border-bottom:1px solid var(--grid)}
 .status{font-size:12px;color:var(--muted)}
 .status.err{color:var(--critical)}
 main{padding:16px 20px;max-width:1500px;margin:0 auto}
@@ -93,7 +110,11 @@ td svg.spark{width:110px;height:22px;display:block;margin-left:auto}
 <body>
 <header>
   <h1>Traffic monitor</h1>
-  <div id="ifaces"></div>
+  <span class="host" id="host" title="hostname"></span>
+  <div class="ifsel" id="ifsel">
+    <button class="ifbtn" id="ifbtn" title="Switch interface"><span id="ifname">…</span><span class="sub" id="ifsub"></span><span class="caret">▾</span></button>
+    <div class="menu" id="ifmenu" hidden></div>
+  </div>
   <span class="status" id="since"></span>
   <span class="spacer"></span>
   <span class="status" id="status"></span>
@@ -139,8 +160,9 @@ const SLOTS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'];
 const $ = id => document.getElementById(id);
 let state = null, paused = false, sortKey = 'rate', sortDir = -1;
 const expanded = new Set();
-let unitBits = false;
+let unitBits = false, iface = null, menuOpen = false, pollTimer = null, notice = '';
 try { unitBits = localStorage.getItem('tm.unit') === 'b'; } catch (e) {}
+try { iface = localStorage.getItem('tm.iface') || null; } catch (e) {}
 try { const th = localStorage.getItem('tm.theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
 $('unit').value = unitBits ? 'b' : 'B';
 
@@ -268,15 +290,62 @@ function sparkline(svg, pts, W, H) {
                   (hasUp ? `<path d="${line(1)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3,2" vector-effect="non-scaling-stroke"/>` : '');
 }
 
+// ---- interface switcher ----
+const ALL = 'all';
+function viewLabel(name, ifs) { return name === ALL ? 'All captured' : name; }
+function renderMenu() {
+  const s = state; if (!s) return;
+  const cur = s.view.name, cap = s.captured;
+  const row = (key, name, sub, rx, tx, rxt, txt, cls, title) =>
+    `<tr class="mrow${key === cur ? ' sel' : ''}${cls}" data-iface="${esc(key)}" title="${esc(title)}">` +
+    `<td class="nm">${esc(name)}${sub}</td><td>↓ ${esc(fmtRate(rx))}</td><td>↑ ${esc(fmtRate(tx))}</td>` +
+    `<td class="tot">${esc(fmtBytes(rxt))}</td><td class="tot">${esc(fmtBytes(txt))}</td></tr>`;
+  let html = `<table><thead><tr><th>interface</th><th>down</th><th>up</th><th>total ↓</th><th>total ↑</th></tr></thead><tbody>`;
+  if (cap.length > 1) {
+    const c = s.ifaces.filter(i => i.captured);
+    const sum = k => c.reduce((a, i) => a + i[k], 0);
+    html += row(ALL, 'All captured', `<span class="meta">${esc(cap.join(', '))}</span>`, sum('rx_bps'), sum('tx_bps'), sum('rx_total'), sum('tx_total'), '', 'every captured interface combined');
+    html += '<tr class="msep"><td colspan="5"></td></tr>';
+  }
+  for (const i of s.ifaces) {
+    const tags = (i.captured ? '<span class="tag" title="per-process capture running">capturing</span>' : '') +
+                 (i.state !== 'up' && i.state !== 'unknown' ? `<span class="tag">${esc(i.state)}</span>` : '');
+    html += row(i.name, i.name, tags, i.rx_bps, i.tx_bps, i.rx_total, i.tx_total, i.state === 'down' ? ' off' : '',
+                i.captured ? 'show this interface' : 'start per-process capture on this interface and show it');
+  }
+  $('ifmenu').innerHTML = html + '</tbody></table>';
+}
+function openMenu(open) {
+  menuOpen = open; $('ifmenu').hidden = !open; $('ifbtn').classList.toggle('on', open);
+  if (open) renderMenu();
+}
+function selectIface(name) {
+  openMenu(false);
+  if (state && name === state.view.name) return;
+  iface = name; notice = ''; try { localStorage.setItem('tm.iface', name); } catch (e) {}
+  totalSpark = []; expanded.clear(); for (const k in hoverIdx) delete hoverIdx[k];
+  $('status').textContent = 'switching…'; $('status').classList.remove('err');
+  clearTimeout(pollTimer); poll();
+}
+$('ifbtn').addEventListener('click', ev => { ev.stopPropagation(); openMenu(!menuOpen); });
+$('ifmenu').addEventListener('click', ev => { ev.stopPropagation(); const r = ev.target.closest('.mrow[data-iface]'); if (r) selectIface(r.dataset.iface); });
+document.addEventListener('click', () => { if (menuOpen) openMenu(false); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && menuOpen) openMenu(false); });
+
 // ---- render ----
 let totalSpark = [];
 function render() {
-  const s = state, t = s.totals;
-  $('ifaces').innerHTML = s.ifaces.map(i => `<span class="chip" title="↓ ${esc(fmtRate(i.rx_bps))} ↑ ${esc(fmtRate(i.tx_bps))}">${esc(i.name)}</span>`).join('');
+  const s = state, t = s.totals, v = s.view;
+  $('host').textContent = s.hostname; document.title = `${s.hostname} · Traffic monitor`;
+  $('ifname').textContent = viewLabel(v.name);
+  $('ifsub').textContent = v.name === ALL ? v.ifaces.join(', ') : '';
+  $('ifbtn').title = `Switch interface (capturing ${s.captured.join(', ')})`;
+  if (menuOpen) renderMenu();
   $('since').textContent = 'since ' + new Date(s.started * 1000).toLocaleTimeString() + ' · ' + fmtDur(s.t - s.started);
   totalSpark.push([t.rx_bps, t.tx_bps]); if (totalSpark.length > 60) totalSpark.shift();
   $('rx').textContent = fmtRate(t.rx_bps); $('tx').textContent = fmtRate(t.tx_bps);
-  const sumRx = s.ifaces.reduce((a, i) => a + i.rx_total, 0), sumTx = s.ifaces.reduce((a, i) => a + i.tx_total, 0);
+  const mine = s.ifaces.filter(i => v.ifaces.includes(i.name));
+  const sumRx = mine.reduce((a, i) => a + i.rx_total, 0), sumTx = mine.reduce((a, i) => a + i.tx_total, 0);
   $('rxsub').textContent = 'interface counters: ' + fmtBytes(sumRx); $('txsub').textContent = 'interface counters: ' + fmtBytes(sumTx);
   sparkline($('rxspark'), totalSpark.map(p => [p[0], 0]), 200, 28); sparkline($('txspark'), totalSpark.map(p => [p[1], 0]), 200, 28);
   const tot = t.rx_bps + t.tx_bps, attr = t.attr_rx_bps + t.attr_tx_bps;
@@ -351,17 +420,29 @@ $('theme').addEventListener('click', () => {
 });
 window.addEventListener('resize', () => { if (state) render(); });
 
+let pollGen = 0;   // a switch starts a new poll loop; a fetch still in flight from the old one must not render or reschedule
 async function poll() {
+  const gen = ++pollGen;
   if (!paused) {
     try {
-      const r = await fetch('/api/state', { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      state = await r.json();
-      $('status').textContent = ''; $('status').classList.remove('err');
+      const r = await fetch('/api/state' + (iface ? '?iface=' + encodeURIComponent(iface) : ''), { cache: 'no-store' });
+      const body = await r.json().catch(() => null);
+      if (gen !== pollGen) return;
+      if (!r.ok) {
+        if (body && body.error && iface) {   // unknown / uncapturable interface: fall back to the default view
+          iface = null; try { localStorage.removeItem('tm.iface'); } catch (e) {}
+          notice = body.error + ' — showing the default view';
+          throw new Error(notice);
+        }
+        throw new Error('HTTP ' + r.status);
+      }
+      state = body;
+      $('status').textContent = notice; $('status').classList.toggle('err', !!notice);
       render();
-    } catch (e) { $('status').textContent = 'no data: ' + e.message; $('status').classList.add('err'); }
+    } catch (e) { if (gen !== pollGen) return; $('status').textContent = 'no data: ' + e.message; $('status').classList.add('err'); }
   }
-  setTimeout(poll, state ? Math.max(500, state.interval * 1000) : 1000);
+  if (gen !== pollGen) return;
+  pollTimer = setTimeout(poll, state ? Math.max(500, state.interval * 1000) : 1000);
 }
 poll();
 </script>

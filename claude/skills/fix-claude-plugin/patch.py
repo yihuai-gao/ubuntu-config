@@ -236,17 +236,40 @@ PATCHES = [
         # flagsOnly truthy it skips the ~/.claude/settings.json write and only
         # calls query.applyFlagSettings(settings) on the live session -- the
         # same path the webview's own `apply_settings {flagsOnly:true}` uses.
-        "find": re.compile(
-            r'(async setModel\(([\w$]+),([\w$]+)\)\{return await '
-            r'this\.writeUserSettingsAndPush\(\2,'
-            r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
-        ),
-        "replace": lambda m: f'{m.group(1)},!0)',
-        "already": re.compile(
-            r'async setModel\(([\w$]+),([\w$]+)\)\{return await '
-            r'this\.writeUserSettingsAndPush\(\1,'
-            r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
-        ),
+        # Two shapes (writeUserSettingsAndPush(channel, settings, flagsOnly,
+        # scope) is unchanged in both -- `!flagsOnly` still gates the disk write):
+        #   <= 2.1.259: async setModel($,Q){return await this.writeUserSettingsAndPush($,
+        #                 {model:...}),{type:"set_model_response"}}
+        #   >= 2.1.260: async setModel($,Q){let J=await this.writeUserSettingsAndPush($,
+        #                 {model:...});return{type:"set_model_response",...J!==void 0&&{applied:J}}}
+        "alts": [
+            (
+                re.compile(
+                    r'(async setModel\(([\w$]+),([\w$]+)\)\{return await '
+                    r'this\.writeUserSettingsAndPush\(\2,'
+                    r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
+                ),
+                lambda m: f'{m.group(1)},!0)',
+                re.compile(
+                    r'async setModel\(([\w$]+),([\w$]+)\)\{return await '
+                    r'this\.writeUserSettingsAndPush\(\1,'
+                    r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
+                ),
+            ),
+            (
+                re.compile(
+                    r'(async setModel\(([\w$]+),([\w$]+)\)\{let [\w$]+=await '
+                    r'this\.writeUserSettingsAndPush\(\2,'
+                    r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
+                ),
+                lambda m: f'{m.group(1)},!0)',
+                re.compile(
+                    r'async setModel\(([\w$]+),([\w$]+)\)\{let [\w$]+=await '
+                    r'this\.writeUserSettingsAndPush\(\1,'
+                    r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
+                ),
+            ),
+        ],
     },
     {
         "name": "5a context-usage pie: show below 50% used",

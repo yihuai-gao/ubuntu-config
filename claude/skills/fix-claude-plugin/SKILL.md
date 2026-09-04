@@ -153,6 +153,10 @@ any value the model picker / `claude --model` accepts works):
   the same code path the webview's own `apply_settings {flagsOnly:true}` uses.
   Verified via the CLI control channel that `apply_flag_settings {model}`
   switches the model even when the process was spawned with `--model`.
+  Two handler shapes are handled (`alts`): `return await write(...),{...}`
+  (≤ 2.1.259) and `let J=await write(...);return{...applied:J}` (2.1.260+);
+  the `writeUserSettingsAndPush(channel, settings, flagsOnly, scope)`
+  signature is the same in both.
 
 Notes:
 - You can still switch models freely inside a session (picker or `/model`);

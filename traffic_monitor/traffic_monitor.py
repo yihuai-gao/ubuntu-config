@@ -13,6 +13,11 @@ How it works
     and inodes to pids through /proc/<pid>/fd.
   * SNAT/DNAT traffic of bridged containers is de-NATed through
     /proc/net/nf_conntrack when that file exists.
+  * Per-process accounting is kept per captured interface (plus an "all"
+    union when several are captured); the dashboard switches between them
+    with /api/state?iface=<name>.  Selecting an interface that is not captured
+    yet starts a sniffer for it on the fly.  Overall rates of EVERY interface
+    (from /proc/net/dev) are always reported for the switcher menu.
   * A tiny HTTP server (default http://127.0.0.1:8787) serves the dashboard
     and /api/state (JSON).  --text prints a top-like table instead.
 """
@@ -28,6 +33,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ETH_P_ALL = 0x0003
@@ -339,6 +345,18 @@ def read_net_dev():
     return out
 
 
+def iface_state(name):
+    try:
+        with open(f"/sys/class/net/{name}/operstate") as f:
+            return f.read().strip()
+    except OSError:
+        return "unknown"
+
+
+def iface_exists(name):
+    return name and "/" not in name and name not in (".", "..") and os.path.isdir(f"/sys/class/net/{name}")
+
+
 def default_interfaces():
     ifs = []
     for fam in ("-4", "-6"):
@@ -427,15 +445,95 @@ class ProcStats:
         self.spark = collections.deque(maxlen=60)  # (rx_rate, tx_rate)
 
 
+class View:
+    """Per-process accounting for one captured interface, or ("all") the union of every captured one."""
+
+    def __init__(self, name, ifaces, history):
+        self.name = name
+        self.ifaces = list(ifaces)
+        self.history_len = history
+        self.procs = {}                                   # pid -> ProcStats
+        self.hist = collections.deque(maxlen=history)     # (t, {pid: (rx, tx)})
+        self.totals = {"rx_bps": 0.0, "tx_bps": 0.0, "attr_rx_bps": 0.0, "attr_tx_bps": 0.0}
+        self.start = time.time()
+
+    def update(self, resolved, non_ip, dt, now, rates, info_for):
+        """resolved: list of (pid, key, rx, tx); rates: {iface: (rx_bps, tx_bps, rx_total, tx_total)}."""
+        per_pid = {}
+        per_pid_conns = collections.defaultdict(set)
+        per_pid_remotes = collections.defaultdict(dict)
+        for pid, key, rx, tx in resolved:
+            e = per_pid.get(pid)
+            if e is None:
+                per_pid[pid] = [rx, tx]
+            else:
+                e[0] += rx
+                e[1] += tx
+            per_pid_conns[pid].add(key)
+            rk = (key[0], key[3], key[4])
+            r = per_pid_remotes[pid].get(rk)
+            if r is None:
+                per_pid_remotes[pid][rk] = [rx, tx]
+            else:
+                r[0] += rx
+                r[1] += tx
+        if non_ip[0] or non_ip[1]:
+            per_pid[PID_NON_IP] = list(non_ip)
+
+        attr_rx = attr_tx = 0
+        for ps in self.procs.values():
+            ps.rx_rate = ps.tx_rate = 0.0
+            ps.conns = 0
+        for pid, (rx, tx) in per_pid.items():
+            ps = self.procs.get(pid)
+            if ps is None:
+                ps = self.procs[pid] = ProcStats(pid, now)
+            ps.rx_rate = rx / dt
+            ps.tx_rate = tx / dt
+            ps.rx_total += rx
+            ps.tx_total += tx
+            ps.conns = len(per_pid_conns.get(pid, ()))
+            if rx or tx:
+                ps.last_active = now
+            if pid >= 0:
+                attr_rx += rx
+                attr_tx += tx
+            for rk, (rrx, rtx) in per_pid_remotes.get(pid, {}).items():
+                r = ps.remotes.get(rk)
+                if r is None:
+                    ps.remotes[rk] = [rrx, rtx, now]
+                else:
+                    r[0] += rrx
+                    r[1] += rtx
+                    r[2] = now
+            if len(ps.remotes) > 40:
+                keep = sorted(ps.remotes.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)[:30]
+                ps.remotes = dict(keep)
+        for pid, ps in list(self.procs.items()):
+            ps.spark.append((ps.rx_rate, ps.tx_rate))
+            if now - ps.info_time > 30 or ps.info is None:
+                ps.info = info_for(pid)
+                ps.info_time = now
+            if not ps.info["alive"] and now - ps.last_active > self.history_len + 60:
+                del self.procs[pid]
+        self.hist.append((now, {pid: (v[0] / dt, v[1] / dt) for pid, v in per_pid.items()}))
+        tot_rx = sum(rates[i][0] for i in self.ifaces if i in rates)
+        tot_tx = sum(rates[i][1] for i in self.ifaces if i in rates)
+        self.totals = {"rx_bps": tot_rx, "tx_bps": tot_tx,
+                       "attr_rx_bps": attr_rx / dt, "attr_tx_bps": attr_tx / dt}
+
+
+ALL_VIEW = "all"
+
+
 class Monitor:
     def __init__(self, ifaces, interval=1.0, history=300, use_conntrack=True):
-        self.ifaces = ifaces
         self.interval = interval
         self.history_len = history
         self.use_conntrack = use_conntrack and os.path.exists("/proc/net/nf_conntrack")
-        self.sniffers = [Sniffer(i) for i in ifaces]
-        self.procs = {}                       # pid -> ProcStats
-        self.hist = collections.deque(maxlen=history)   # (t, {pid: (rx, tx)})
+        self.hostname = socket.gethostname()
+        self.sniffers = {}                    # iface -> Sniffer (insertion order = capture order)
+        self.views = {}                       # iface | ALL_VIEW -> View
         self.inode_pid = {}
         self.netns = {}
         self.host_ns = self._read_host_ns()
@@ -446,12 +544,22 @@ class Monitor:
         self.drops = 0
         self._nat = {}
         self._nat_time = 0.0
+        self._info_cache = {}                 # pid -> (time, info) shared by every view
         self.start = time.time()
         self.lock = threading.Lock()
-        self.iface_rates = {}                 # iface -> (rx_bps, tx_bps, rx_total, tx_total)
-        self.totals = {"rx_bps": 0.0, "tx_bps": 0.0, "attr_rx_bps": 0.0, "attr_tx_bps": 0.0}
+        self.iface_rates = {}                 # EVERY /proc/net/dev iface -> (rx_bps, tx_bps, rx_total, tx_total, state)
         self._last_dev = read_net_dev()
         self._last_t = time.monotonic()
+        for i in ifaces:
+            self._add_capture(i)
+
+    @property
+    def ifaces(self):
+        return list(self.sniffers)
+
+    @property
+    def default_view(self):
+        return ALL_VIEW if len(self.sniffers) > 1 else next(iter(self.sniffers), ALL_VIEW)
 
     @staticmethod
     def _read_host_ns():
@@ -460,13 +568,46 @@ class Monitor:
         except OSError:
             return None
 
+    def _add_capture(self, iface):
+        """Register a sniffer + view for iface (call under self.lock once threads run). Returns the Sniffer."""
+        s = self.sniffers[iface] = Sniffer(iface)
+        self.views[iface] = View(iface, [iface], self.history_len)
+        if len(self.sniffers) > 1 and ALL_VIEW not in self.views:
+            self.views[ALL_VIEW] = View(ALL_VIEW, self.sniffers, self.history_len)
+        if ALL_VIEW in self.views:
+            self.views[ALL_VIEW].ifaces = list(self.sniffers)
+        return s
+
+    def ensure_capture(self, iface):
+        """Start capturing iface on demand (dashboard switch). Returns an error string or None."""
+        with self.lock:
+            if iface in self.views:
+                return None
+            if not iface_exists(iface):
+                return f"{iface}: no such interface"
+            s = self._add_capture(iface)
+            s.start()
+        time.sleep(0.3)  # bind errors surface almost immediately
+        if s.error:
+            with self.lock:
+                self.sniffers.pop(iface, None)
+                self.views.pop(iface, None)
+                if ALL_VIEW in self.views:
+                    if len(self.sniffers) > 1:
+                        self.views[ALL_VIEW].ifaces = list(self.sniffers)
+                    else:   # the union view only existed because of this failed capture
+                        del self.views[ALL_VIEW]
+            return s.error
+        print(f"[traffic_monitor] now also capturing {iface}", file=sys.stderr)
+        return None
+
     def start_threads(self):
-        for s in self.sniffers:
+        for s in self.sniffers.values():
             s.start()
         threading.Thread(target=self._loop, name="aggregate", daemon=True).start()
 
     def errors(self):
-        return [s.error for s in self.sniffers if s.error]
+        return [s.error for s in self.sniffers.values() if s.error]
 
     # -- resolution ---------------------------------------------------------
     def _rescan_fds(self):
@@ -492,11 +633,13 @@ class Monitor:
                 inode = listen.get((proto, None, lport))
         return inode
 
-    def _resolve(self, flows):
-        """flows: {key: [rx, tx]} -> list of (pid, key, rx, tx)."""
+    def _socket_table(self):
         if time.monotonic() - self.last_scan > 15:
             self._rescan_fds()
-        conn, listen = build_socket_table(self._netns_order())
+        return build_socket_table(self._netns_order())
+
+    def _resolve(self, flows, conn, listen):
+        """flows: {key: [rx, tx]} -> list of (pid, key, rx, tx)."""
         nat = None
         pending = []
         out = []
@@ -549,98 +692,42 @@ class Monitor:
             return
         now = time.time()
 
-        flows = {}
-        non_ip = [0, 0]
-        for s in self.sniffers:
+        with self.lock:
+            sniffers = list(self.sniffers.items())
+        drained = {}                          # iface -> (flows, non_ip)
+        nflows = 0
+        for iface, s in sniffers:
             c, n = s.drain()
-            non_ip[0] += n[0]
-            non_ip[1] += n[1]
-            for k, v in c.items():
-                e = flows.get(k)
-                if e is None:
-                    flows[k] = v
-                else:
-                    e[0] += v[0]
-                    e[1] += v[1]
-        self.flows = len(flows)
-        self.drops += sum(sn.drops() for sn in self.sniffers)
-        resolved = self._resolve(flows)
-
-        per_pid = {}
-        per_pid_conns = collections.defaultdict(set)
-        per_pid_remotes = collections.defaultdict(dict)
-        for pid, key, rx, tx in resolved:
-            e = per_pid.get(pid)
-            if e is None:
-                per_pid[pid] = [rx, tx]
-            else:
-                e[0] += rx
-                e[1] += tx
-            per_pid_conns[pid].add(key)
-            rk = (key[0], key[3], key[4])
-            r = per_pid_remotes[pid].get(rk)
-            if r is None:
-                per_pid_remotes[pid][rk] = [rx, tx]
-            else:
-                r[0] += rx
-                r[1] += tx
-        if non_ip[0] or non_ip[1]:
-            per_pid[PID_NON_IP] = non_ip
+            drained[iface] = (c, n)
+            nflows += len(c)
+        self.flows = nflows
+        self.drops += sum(s.drops() for _i, s in sniffers)
+        conn, listen = self._socket_table()
+        resolved = {iface: self._resolve(c, conn, listen) for iface, (c, _n) in drained.items()}
 
         dev = read_net_dev()
-        iface_rates = {}
-        tot_rx = tot_tx = 0.0
-        for i in self.ifaces:
-            a, b = self._last_dev.get(i), dev.get(i)
-            if a and b:
-                rxr = max(0, b[0] - a[0]) / dt
-                txr = max(0, b[1] - a[1]) / dt
-                iface_rates[i] = (rxr, txr, b[0], b[1])
-                tot_rx += rxr
-                tot_tx += txr
+        rates = {}
+        for i, b in dev.items():
+            a = self._last_dev.get(i)
+            if a:
+                rates[i] = (max(0, b[0] - a[0]) / dt, max(0, b[1] - a[1]) / dt, b[0], b[1], iface_state(i))
         self._last_dev = dev
 
         with self.lock:
-            attr_rx = attr_tx = 0
-            for ps in self.procs.values():
-                ps.rx_rate = ps.tx_rate = 0.0
-                ps.conns = 0
-            for pid, (rx, tx) in per_pid.items():
-                ps = self.procs.get(pid)
-                if ps is None:
-                    ps = self.procs[pid] = ProcStats(pid, now)
-                ps.rx_rate = rx / dt
-                ps.tx_rate = tx / dt
-                ps.rx_total += rx
-                ps.tx_total += tx
-                ps.conns = len(per_pid_conns.get(pid, ()))
-                if rx or tx:
-                    ps.last_active = now
-                if pid >= 0:
-                    attr_rx += rx
-                    attr_tx += tx
-                for rk, (rrx, rtx) in per_pid_remotes.get(pid, {}).items():
-                    r = ps.remotes.get(rk)
+            self._info_cache = {p: v for p, v in self._info_cache.items() if now - v[0] < 300}
+            for name, view in self.views.items():
+                ifs = list(self.sniffers) if name == ALL_VIEW else [name]
+                res, non_ip = [], [0, 0]
+                for i in ifs:
+                    r = resolved.get(i)
                     if r is None:
-                        ps.remotes[rk] = [rrx, rtx, now]
-                    else:
-                        r[0] += rrx
-                        r[1] += rtx
-                        r[2] = now
-                if len(ps.remotes) > 40:
-                    keep = sorted(ps.remotes.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)[:30]
-                    ps.remotes = dict(keep)
-            for pid, ps in list(self.procs.items()):
-                ps.spark.append((ps.rx_rate, ps.tx_rate))
-                if now - ps.info_time > 30 or ps.info is None:
-                    ps.info = self._info_for(pid)
-                    ps.info_time = now
-                if not ps.info["alive"] and now - ps.last_active > self.history_len + 60:
-                    del self.procs[pid]
-            self.hist.append((now, {pid: (v[0] / dt, v[1] / dt) for pid, v in per_pid.items()}))
-            self.iface_rates = iface_rates
-            self.totals = {"rx_bps": tot_rx, "tx_bps": tot_tx,
-                           "attr_rx_bps": attr_rx / dt, "attr_tx_bps": attr_tx / dt}
+                        continue
+                    res.extend(r)
+                    non_ip[0] += drained[i][1][0]
+                    non_ip[1] += drained[i][1][1]
+                view.ifaces = ifs
+                view.update(res, non_ip, dt, now, rates, self._info_for)
+            self.iface_rates = rates
             self.tick_ms = (time.monotonic() - t0) * 1000
 
     def _info_for(self, pid):
@@ -650,14 +737,37 @@ class Monitor:
         if pid == PID_NON_IP:
             return {"name": "non-IP frames", "cmd": "ARP / LLDP / other link-layer frames",
                     "user": "", "container": "", "alive": True}
-        return proc_info(pid)
+        c = self._info_cache.get(pid)
+        now = time.time()
+        if c is None or now - c[0] > 30:
+            c = self._info_cache[pid] = (now, proc_info(pid))
+        return c[1]
 
     # -- snapshot -----------------------------------------------------------
-    def snapshot(self, top_series=7):
+    def iface_list(self):
+        """Every interface with its overall rates, captured ones first (call under self.lock)."""
+        captured = list(self.sniffers)
+        rest = sorted(i for i in self.iface_rates if i not in self.sniffers)
+        rest.sort(key=lambda i: (self.iface_rates[i][4] == "down", i))   # lo reports "unknown": keep it with the live ones
+        out = []
+        for i in captured + rest:
+            r = self.iface_rates.get(i)
+            if r is None:
+                continue
+            out.append({"name": i, "rx_bps": r[0], "tx_bps": r[1], "rx_total": r[2], "tx_total": r[3],
+                        "state": r[4], "captured": i in self.sniffers})
+        return out
+
+    def snapshot(self, view=None, top_series=7):
+        """Dashboard state for one view (an interface name or ALL_VIEW); None for the default. None if unknown."""
         with self.lock:
+            name = view or self.default_view
+            v = self.views.get(name)
+            if v is None:
+                return None
             now = time.time()
             procs = []
-            for pid, ps in self.procs.items():
+            for pid, ps in v.procs.items():
                 info = ps.info or {}
                 remotes = sorted(ps.remotes.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)[:12]
                 procs.append({
@@ -676,34 +786,36 @@ class Monitor:
 
             # history: top entities over the window + "other"
             sums = collections.Counter()
-            for _t, d in self.hist:
+            for _t, d in v.hist:
                 for pid, (rx, tx) in d.items():
                     sums[pid] += rx + tx
             top = [pid for pid, _ in sums.most_common(top_series)]
             top_set = set(top)
             ts, rx_series, tx_series = [], {str(p): [] for p in top}, {str(p): [] for p in top}
             rx_series["other"], tx_series["other"] = [], []
-            for t, d in self.hist:
+            for t, d in v.hist:
                 ts.append(round(t))
                 orx = otx = 0.0
                 for p in top:
-                    v = d.get(p)
-                    rx_series[str(p)].append(round(v[0]) if v else 0)
-                    tx_series[str(p)].append(round(v[1]) if v else 0)
+                    pv = d.get(p)
+                    rx_series[str(p)].append(round(pv[0]) if pv else 0)
+                    tx_series[str(p)].append(round(pv[1]) if pv else 0)
                 for pid, (rx, tx) in d.items():
                     if pid not in top_set:
                         orx += rx
                         otx += tx
                 rx_series["other"].append(round(orx))
                 tx_series["other"].append(round(otx))
-            names = {str(p): (self.procs[p].info or {}).get("name", "?") if p in self.procs else "?" for p in top}
+            names = {str(p): (v.procs[p].info or {}).get("name", "?") if p in v.procs else "?" for p in top}
             names["other"] = "other"
 
             return {
-                "t": now, "started": self.start, "interval": self.interval,
-                "ifaces": [{"name": i, "rx_bps": r[0], "tx_bps": r[1], "rx_total": r[2], "tx_total": r[3]}
-                           for i, r in self.iface_rates.items()],
-                "totals": dict(self.totals),
+                "t": now, "started": v.start, "interval": self.interval,
+                "hostname": self.hostname,
+                "view": {"name": name, "ifaces": list(v.ifaces), "started": v.start},
+                "default_view": self.default_view, "captured": list(self.sniffers),
+                "ifaces": self.iface_list(),
+                "totals": dict(v.totals),
                 "procs": procs,
                 "history": {"t": ts, "rx": rx_series, "tx": tx_series, "names": names, "order": [str(p) for p in top]},
                 "meta": {"flows": self.flows, "drops": self.drops, "scan_ms": round(self.scan_ms, 1), "tick_ms": round(self.tick_ms, 1),
@@ -728,13 +840,24 @@ def make_handler(monitor, index_html):
             self.end_headers()
             self.wfile.write(body)
 
+        def _json(self, code, obj):
+            self._send(code, "application/json", json.dumps(obj, separators=(",", ":")).encode())
+
         def do_GET(self):
-            path = self.path.split("?", 1)[0]
+            path, _, query = self.path.partition("?")
             if path in ("/", "/index.html"):
                 self._send(200, "text/html; charset=utf-8", index_html.encode())
             elif path == "/api/state":
-                body = json.dumps(monitor.snapshot(), separators=(",", ":")).encode()
-                self._send(200, "application/json", body)
+                # ?iface=<name> selects a view; an interface not captured yet is captured on demand.
+                view = urllib.parse.parse_qs(query).get("iface", [None])[0] or None
+                if view and view != ALL_VIEW:
+                    err = monitor.ensure_capture(view)
+                    if err:
+                        return self._json(400, {"error": err, "default_view": monitor.default_view})
+                snap = monitor.snapshot(view)
+                if snap is None:
+                    return self._json(404, {"error": f"unknown view {view!r}", "default_view": monitor.default_view})
+                self._json(200, snap)
             else:
                 self._send(404, "text/plain", b"not found\n")
     return Handler
@@ -756,7 +879,7 @@ def text_loop(monitor, rows=25):
         s = monitor.snapshot()
         t = s["totals"]
         lines = ["\x1b[H\x1b[2J",
-                 f"traffic_monitor  ifaces={','.join(monitor.ifaces)}  total ↓{human(t['rx_bps'])} ↑{human(t['tx_bps'])}"
+                 f"traffic_monitor  {monitor.hostname}  ifaces={','.join(s['view']['ifaces'])}  total ↓{human(t['rx_bps'])} ↑{human(t['tx_bps'])}"
                  f"  attributed ↓{human(t['attr_rx_bps'])} ↑{human(t['attr_tx_bps'])}"
                  f"  flows={s['meta']['flows']}  drops={s['meta']['drops']}  fdscan={s['meta']['scan_ms']}ms",
                  f"{'PID':>7} {'NAME':<22} {'USER':<10} {'DOWN':>12} {'UP':>12} {'TOT DOWN':>10} {'TOT UP':>10} {'CONN':>5}  CMD"]
@@ -838,7 +961,7 @@ def main():
     time.sleep(0.3)
     for e in mon.errors():
         print(f"[traffic_monitor] capture error: {e}", file=sys.stderr)
-    if all(s.error for s in mon.sniffers):
+    if all(s.error for s in mon.sniffers.values()):
         sys.exit("no interface could be captured")
 
     if args.text:
@@ -853,7 +976,7 @@ def main():
         index_html = f.read()
     srv = ThreadingHTTPServer((args.bind, args.port), make_handler(mon, index_html))
     srv.daemon_threads = True
-    print(f"[traffic_monitor] capturing {', '.join(ifaces)}"
+    print(f"[traffic_monitor] {mon.hostname}: capturing {', '.join(ifaces)}"
           f"{' (conntrack de-NAT on)' if mon.use_conntrack else ''}", file=sys.stderr)
     print(f"[traffic_monitor] dashboard: http://{args.bind}:{args.port}/   (Ctrl-C to stop)", file=sys.stderr)
     try:

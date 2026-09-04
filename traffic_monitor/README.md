@@ -19,6 +19,15 @@ interfaces carrying the IPv4/IPv6 default route), `-p/--port`, `--bind`,
 
 ## What you see
 
+* Top bar: the hostname and an interface switcher. Click the interface name to
+  open a menu listing every interface on the machine with its live overall
+  download/upload rate and lifetime counters (captured ones first, `down` ones
+  dimmed). Picking one switches the whole dashboard to that interface; picking
+  one that is not captured yet starts a sniffer for it on the fly (it stays
+  captured until the monitor exits). With several captured interfaces an
+  "All captured" entry shows their union. Each interface keeps its own
+  per-process history, so switching back and forth loses nothing; the choice
+  is remembered per browser.
 * Tiles: download / upload rate from the interface counters (ground truth), how
   much of it could be attributed to a process, active process count, capture
   health (kernel-dropped packets, per-tick cost).
@@ -30,7 +39,7 @@ interfaces carrying the IPv4/IPv6 default route), `-p/--port`, `--bind`,
 
 ## How it works / caveats
 
-* One `AF_PACKET` sniffer per interface counts bytes per flow; the kernel's
+* One `AF_PACKET` sniffer per captured interface counts bytes per flow; the kernel's
   `PACKET_OUTGOING` flag gives the direction. Only the first 128 bytes of each
   packet are copied (`MSG_TRUNC` still reports the true length).
 * Flows are matched to socket inodes through `/proc/net/{tcp,udp}{,6}` of the
