@@ -40,7 +40,7 @@ header button.on{background:var(--hover)}
 .ifsel .ifbtn{display:inline-flex;align-items:center;gap:6px;font-weight:600}
 .ifsel .ifbtn .caret{font-size:10px;color:var(--muted)}
 .ifsel .ifbtn .sub{font-weight:400;color:var(--muted);font-size:12px}
-.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px;min-width:520px;max-height:70vh;overflow:auto}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px;min-width:520px;max-width:calc(100vw - 40px);max-height:70vh;overflow:auto}
 .menu table{width:100%;font-size:13px}
 .menu th{cursor:default;position:static;font-size:11.5px;color:var(--muted);padding:6px 10px 5px}
 .menu td{padding:6px 10px;border-bottom:0}
@@ -53,6 +53,10 @@ header button.on{background:var(--hover)}
 .menu td.nm .meta{color:var(--muted);font-weight:400;margin-left:8px;font-size:12px}
 .menu td.nm .tag{margin-left:8px}
 .menu tr.msep td{padding:0;border-bottom:1px solid var(--grid)}
+.menu td.use{min-width:120px}
+.menu td.use .pct{color:var(--muted);font-size:12px;margin-left:4px}
+.menu td.use .bar{margin-top:3px}
+.menu td.use .bar i.hot{background:var(--critical)}
 .status{font-size:12px;color:var(--muted)}
 .status.err{color:var(--critical)}
 main{padding:16px 20px;max-width:1500px;margin:0 auto}
@@ -111,6 +115,7 @@ td svg.spark{width:110px;height:22px;display:block;margin-left:auto}
 <header>
   <h1>Traffic monitor</h1>
   <span class="host" id="host" title="hostname"></span>
+  <select id="mode" title="What to monitor"><option value="network">network</option><option value="storage">storage</option></select>
   <div class="ifsel" id="ifsel">
     <button class="ifbtn" id="ifbtn" title="Switch interface"><span id="ifname">…</span><span class="sub" id="ifsub"></span><span class="caret">▾</span></button>
     <div class="menu" id="ifmenu" hidden></div>
@@ -125,15 +130,15 @@ td svg.spark{width:110px;height:22px;display:block;margin-left:auto}
 <main>
   <div id="banner" class="banner" hidden></div>
   <div class="tiles">
-    <div class="tile"><div class="label">Download</div><div class="value" id="rx"></div><div class="sub" id="rxsub"></div><svg id="rxspark"></svg></div>
-    <div class="tile"><div class="label">Upload</div><div class="value" id="tx"></div><div class="sub" id="txsub"></div><svg id="txspark"></svg></div>
+    <div class="tile"><div class="label" id="lab-rx">Download</div><div class="value" id="rx"></div><div class="sub" id="rxsub"></div><svg id="rxspark"></svg></div>
+    <div class="tile"><div class="label" id="lab-tx">Upload</div><div class="value" id="tx"></div><div class="sub" id="txsub"></div><svg id="txspark"></svg></div>
     <div class="tile"><div class="label">Attributed to a process</div><div class="value" id="attr"></div><div class="sub" id="attrsub"></div><div class="bar"><i id="attrbar"></i></div></div>
     <div class="tile"><div class="label">Active processes</div><div class="value" id="nproc"></div><div class="sub" id="nprocsub"></div></div>
-    <div class="tile"><div class="label">Capture health</div><div class="value" id="health"></div><div class="sub" id="healthsub"></div></div>
+    <div class="tile"><div class="label" id="lab-health">Capture health</div><div class="value" id="health"></div><div class="sub" id="healthsub"></div></div>
   </div>
   <div class="cards">
-    <div class="card"><h2>Download by process <span id="rxwin"></span></h2><div class="chart" id="rxchart"></div><div class="tip" id="rxtip"></div></div>
-    <div class="card"><h2>Upload by process <span id="txwin"></span></h2><div class="chart" id="txchart"></div><div class="tip" id="txtip"></div></div>
+    <div class="card"><h2><span id="rxtitle">Download by process</span> <span id="rxwin"></span></h2><div class="chart" id="rxchart"></div><div class="tip" id="rxtip"></div></div>
+    <div class="card"><h2><span id="txtitle">Upload by process</span> <span id="txwin"></span></h2><div class="chart" id="txchart"></div><div class="tip" id="txtip"></div></div>
   </div>
   <div class="card" style="padding:0">
     <div class="legend" id="legend" style="padding-top:12px"></div>
@@ -141,12 +146,12 @@ td svg.spark{width:110px;height:22px;display:block;margin-left:auto}
     <table id="tbl">
       <thead><tr>
         <th data-k="name">Process</th>
-        <th data-k="rx_bps">Down</th>
-        <th data-k="tx_bps">Up</th>
-        <th data-k="rate" title="last 60 s; solid = down, dashed = up">60 s <span class="sparkkey">(— down, ┄ up)</span></th>
-        <th data-k="rx_total">Total down</th>
-        <th data-k="tx_total">Total up</th>
-        <th data-k="conns">Flows</th>
+        <th data-k="rx_bps" id="th-rx">Down</th>
+        <th data-k="tx_bps" id="th-tx">Up</th>
+        <th data-k="rate" id="th-spark" title="last 60 s; solid = down, dashed = up">60 s <span class="sparkkey" id="sparkkey">(— down, ┄ up)</span></th>
+        <th data-k="rx_total" id="th-rxt">Total down</th>
+        <th data-k="tx_total" id="th-txt">Total up</th>
+        <th data-k="conns" id="th-conns">Flows</th>
         <th data-k="user">User</th>
       </tr></thead>
       <tbody id="rows"></tbody>
@@ -161,8 +166,29 @@ const $ = id => document.getElementById(id);
 let state = null, paused = false, sortKey = 'rate', sortDir = -1;
 const expanded = new Set();
 let unitBits = false, iface = null, menuOpen = false, pollTimer = null, notice = '';
+// mode: 'network' (per-interface traffic) or 'storage' (per-disk read/write); each remembers its own view
+let mode = 'network';
+const L = {
+  network: { title: 'Traffic monitor', all: 'All captured', col: 'interface', a: 'Download', b: 'Upload', aShort: 'Down', bShort: 'Up',
+             aTot: 'Total down', bTot: 'Total up', conns: 'Flows', flows: 'flows/s', health: 'Capture health', counters: 'interface counters',
+             matched: 'matched a socket', arrows: ['↓', '↑'], spark: '(— down, ┄ up)', sparkTitle: 'last 60 s; solid = down, dashed = up',
+             switchTitle: 'Switch interface', bits: true, sel: 'show this interface', selNew: 'start per-process capture on this interface and show it' },
+  storage: { title: 'Storage monitor', all: 'All disks', col: 'disk', a: 'Read', b: 'Write', aShort: 'Read', bShort: 'Write',
+             aTot: 'Total read', bTot: 'Total written', conns: 'Files', flows: 'open handles', health: 'Disk busy', counters: 'disk counters since boot',
+             matched: 'matched an open file', arrows: ['R', 'W'], spark: '(— read, ┄ write)', sparkTitle: 'last 60 s; solid = read, dashed = write',
+             switchTitle: 'Switch disk', bits: false, sel: 'show this disk', selNew: 'show this disk' },
+};
+const ifaceKey = () => mode === 'network' ? 'tm.iface' : 'tm.iface.' + mode;
+const useBits = () => unitBits && L[mode].bits;
 try { unitBits = localStorage.getItem('tm.unit') === 'b'; } catch (e) {}
-try { iface = localStorage.getItem('tm.iface') || null; } catch (e) {}
+try { const m = localStorage.getItem('tm.mode'); if (m === 'storage') mode = m; } catch (e) {}
+try { iface = localStorage.getItem(ifaceKey()) || null; } catch (e) {}
+{ // ?mode=storage&iface=hdd5 in the URL overrides the remembered choice (bookmarkable views)
+  const qp = new URLSearchParams(location.search);
+  if (L[qp.get('mode')]) { mode = qp.get('mode'); try { iface = localStorage.getItem(ifaceKey()) || null; } catch (e) {} }
+  if (qp.get('iface')) iface = qp.get('iface');
+}
+$('mode').value = mode;
 try { const th = localStorage.getItem('tm.theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
 $('unit').value = unitBits ? 'b' : 'B';
 
@@ -187,8 +213,9 @@ const colorOf = k => k === 'other' ? 'var(--other)' : `var(${SLOTS[slotOf.get(k)
 
 // ---- formatting ----
 function fmtRate(bps) {
-  let v = unitBits ? bps * 8 : bps;
-  const u = unitBits ? ['b/s','kb/s','Mb/s','Gb/s'] : ['B/s','kB/s','MB/s','GB/s'];
+  const bits = useBits();
+  let v = bits ? bps * 8 : bps;
+  const u = bits ? ['b/s','kb/s','Mb/s','Gb/s'] : ['B/s','kB/s','MB/s','GB/s'];
   let i = 0; while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
   return (v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(1)) + ' ' + u[i];
 }
@@ -224,8 +251,8 @@ function stackedArea(id, tipId, ts, series) {
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const tops = [], acc = new Array(n).fill(0);
   series.forEach(s => { const t = new Array(n); for (let j = 0; j < n; j++) { acc[j] += s.values[j] || 0; t[j] = acc[j]; } tops.push(t); });
-  const ymax = Math.max(unitBits ? 125 : 1000, ...acc) * 1.08;
-  const ticks = niceTicks(ymax / (unitBits ? 1 : 1), 4);
+  const ymax = Math.max(useBits() ? 125 : 1000, ...acc) * 1.08;
+  const ticks = niceTicks(ymax, 4);
   const x = j => m.l + j * pw / (n - 1), y = v => m.t + ph * (1 - v / ymax);
   let g = '';
   for (const tv of ticks) {
@@ -292,26 +319,35 @@ function sparkline(svg, pts, W, H) {
 
 // ---- interface switcher ----
 const ALL = 'all';
-function viewLabel(name, ifs) { return name === ALL ? 'All captured' : name; }
+function viewLabel(name, ifs) { return name === ALL ? L[mode].all : name; }
 function renderMenu() {
   const s = state; if (!s) return;
-  const cur = s.view.name, cap = s.captured;
-  const row = (key, name, sub, rx, tx, rxt, txt, cls, title) =>
+  const cur = s.view.name, cap = s.captured, lb = L[mode], stor = mode === 'storage';
+  // storage: two extra columns, used (with % of size and a fill bar) and free
+  // used % like df: of the space a user can fill (used + free), root-reserved blocks excluded
+  const usage = (size, used, avail) => { if (!stor) return ''; if (!(size > 0)) return '<td class="tot">?</td><td class="tot">?</td>';
+    const pct = 100 * used / Math.max(1, used + avail);
+    return `<td class="use"><span>${esc(fmtBytes(used))} <span class="pct">${Math.round(pct)}%</span></span><div class="bar"><i class="${pct > 90 ? 'hot' : ''}" style="width:${Math.min(100, pct).toFixed(1)}%"></i></div></td><td class="tot">${esc(fmtBytes(avail))}</td>`; };
+  const ncol = stor ? 7 : 5;
+  const row = (key, name, sub, rx, tx, rxt, txt, cls, title, size, used, avail) =>
     `<tr class="mrow${key === cur ? ' sel' : ''}${cls}" data-iface="${esc(key)}" title="${esc(title)}">` +
-    `<td class="nm">${esc(name)}${sub}</td><td>↓ ${esc(fmtRate(rx))}</td><td>↑ ${esc(fmtRate(tx))}</td>` +
-    `<td class="tot">${esc(fmtBytes(rxt))}</td><td class="tot">${esc(fmtBytes(txt))}</td></tr>`;
-  let html = `<table><thead><tr><th>interface</th><th>down</th><th>up</th><th>total ↓</th><th>total ↑</th></tr></thead><tbody>`;
+    `<td class="nm">${esc(name)}${sub}</td><td>${lb.arrows[0]} ${esc(fmtRate(rx))}</td><td>${lb.arrows[1]} ${esc(fmtRate(tx))}</td>` +
+    `<td class="tot">${esc(fmtBytes(rxt))}</td><td class="tot">${esc(fmtBytes(txt))}</td>${usage(size, used, avail)}</tr>`;
+  let html = `<table><thead><tr><th>${lb.col}</th><th>${lb.aShort.toLowerCase()}</th><th>${lb.bShort.toLowerCase()}</th><th>total ${lb.arrows[0]}</th><th>total ${lb.arrows[1]}</th>${stor ? '<th>used</th><th>free</th>' : ''}</tr></thead><tbody>`;
   if (cap.length > 1) {
     const c = s.ifaces.filter(i => i.captured);
-    const sum = k => c.reduce((a, i) => a + i[k], 0);
-    html += row(ALL, 'All captured', `<span class="meta">${esc(cap.join(', '))}</span>`, sum('rx_bps'), sum('tx_bps'), sum('rx_total'), sum('tx_total'), '', 'every captured interface combined');
-    html += '<tr class="msep"><td colspan="5"></td></tr>';
+    const sum = k => c.reduce((a, i) => a + (i[k] || 0), 0);
+    html += row(ALL, lb.all, `<span class="meta">${esc(cap.join(', '))}</span>`, sum('rx_bps'), sum('tx_bps'), sum('rx_total'), sum('tx_total'), '',
+                stor ? 'every monitored disk combined' : 'every captured interface combined', sum('size'), sum('used'), sum('avail'));
+    html += `<tr class="msep"><td colspan="${ncol}"></td></tr>`;
   }
   for (const i of s.ifaces) {
-    const tags = (i.captured ? '<span class="tag" title="per-process capture running">capturing</span>' : '') +
-                 (i.state !== 'up' && i.state !== 'unknown' ? `<span class="tag">${esc(i.state)}</span>` : '');
+    const tags = stor ?
+        `<span class="meta">${esc(i.dev)}</span><span class="tag" title="disk utilisation (busy time)">${Math.round(i.util)}% busy</span>` :
+        (i.captured ? '<span class="tag" title="per-process capture running">capturing</span>' : '') +
+        (i.state !== 'up' && i.state !== 'unknown' ? `<span class="tag">${esc(i.state)}</span>` : '');
     html += row(i.name, i.name, tags, i.rx_bps, i.tx_bps, i.rx_total, i.tx_total, i.state === 'down' ? ' off' : '',
-                i.captured ? 'show this interface' : 'start per-process capture on this interface and show it');
+                i.captured ? lb.sel : lb.selNew, i.size, i.used, i.avail);
   }
   $('ifmenu').innerHTML = html + '</tbody></table>';
 }
@@ -319,14 +355,25 @@ function openMenu(open) {
   menuOpen = open; $('ifmenu').hidden = !open; $('ifbtn').classList.toggle('on', open);
   if (open) renderMenu();
 }
-function selectIface(name) {
-  openMenu(false);
-  if (state && name === state.view.name) return;
-  iface = name; notice = ''; try { localStorage.setItem('tm.iface', name); } catch (e) {}
+function resetView() {
   totalSpark = []; expanded.clear(); for (const k in hoverIdx) delete hoverIdx[k];
   $('status').textContent = 'switching…'; $('status').classList.remove('err');
   clearTimeout(pollTimer); poll();
 }
+function selectIface(name) {
+  openMenu(false);
+  if (state && name === state.view.name) return;
+  iface = name; notice = ''; try { localStorage.setItem(ifaceKey(), name); } catch (e) {}
+  resetView();
+}
+function selectMode(m) {
+  if (m === mode) return;
+  mode = m; notice = ''; try { localStorage.setItem('tm.mode', m); } catch (e) {}
+  iface = null; try { iface = localStorage.getItem(ifaceKey()) || null; } catch (e) {}
+  applyLabels(); $('ifname').textContent = iface ? viewLabel(iface) : '…'; $('ifsub').textContent = '';
+  openMenu(false); resetView();
+}
+$('mode').addEventListener('change', ev => selectMode(ev.target.value));
 $('ifbtn').addEventListener('click', ev => { ev.stopPropagation(); openMenu(!menuOpen); });
 $('ifmenu').addEventListener('click', ev => { ev.stopPropagation(); const r = ev.target.closest('.mrow[data-iface]'); if (r) selectIface(r.dataset.iface); });
 document.addEventListener('click', () => { if (menuOpen) openMenu(false); });
@@ -334,31 +381,45 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && menuOpen
 
 // ---- render ----
 let totalSpark = [];
+function applyLabels() {
+  const lb = L[mode];
+  $('lab-rx').textContent = lb.a; $('lab-tx').textContent = lb.b; $('lab-health').textContent = lb.health;
+  $('rxtitle').textContent = lb.a + ' by process'; $('txtitle').textContent = lb.b + ' by process';
+  $('th-rx').textContent = lb.aShort; $('th-tx').textContent = lb.bShort; $('th-rxt').textContent = lb.aTot; $('th-txt').textContent = lb.bTot;
+  $('th-conns').textContent = lb.conns; $('sparkkey').textContent = lb.spark; $('th-spark').title = lb.sparkTitle;
+  $('unit').hidden = !lb.bits;
+}
 function render() {
-  const s = state, t = s.totals, v = s.view;
-  $('host').textContent = s.hostname; document.title = `${s.hostname} · Traffic monitor`;
+  const s = state, t = s.totals, v = s.view, lb = L[mode], stor = mode === 'storage';
+  applyLabels();
+  $('host').textContent = s.hostname; document.title = `${s.hostname} · ${lb.title}`;
   $('ifname').textContent = viewLabel(v.name);
   $('ifsub').textContent = v.name === ALL ? v.ifaces.join(', ') : '';
-  $('ifbtn').title = `Switch interface (capturing ${s.captured.join(', ')})`;
+  $('ifbtn').title = `${lb.switchTitle} (${stor ? 'monitoring' : 'capturing'} ${s.captured.join(', ')})`;
   if (menuOpen) renderMenu();
   $('since').textContent = 'since ' + new Date(s.started * 1000).toLocaleTimeString() + ' · ' + fmtDur(s.t - s.started);
   totalSpark.push([t.rx_bps, t.tx_bps]); if (totalSpark.length > 60) totalSpark.shift();
   $('rx').textContent = fmtRate(t.rx_bps); $('tx').textContent = fmtRate(t.tx_bps);
   const mine = s.ifaces.filter(i => v.ifaces.includes(i.name));
   const sumRx = mine.reduce((a, i) => a + i.rx_total, 0), sumTx = mine.reduce((a, i) => a + i.tx_total, 0);
-  $('rxsub').textContent = 'interface counters: ' + fmtBytes(sumRx); $('txsub').textContent = 'interface counters: ' + fmtBytes(sumTx);
+  $('rxsub').textContent = lb.counters + ': ' + fmtBytes(sumRx); $('txsub').textContent = lb.counters + ': ' + fmtBytes(sumTx);
   sparkline($('rxspark'), totalSpark.map(p => [p[0], 0]), 200, 28); sparkline($('txspark'), totalSpark.map(p => [p[1], 0]), 200, 28);
   const tot = t.rx_bps + t.tx_bps, attr = t.attr_rx_bps + t.attr_tx_bps;
   const pct = tot > 0 ? Math.min(100, 100 * attr / tot) : 100;
   $('attr').innerHTML = pct.toFixed(0) + '<small>%</small>';
-  $('attrsub').textContent = tot > 0 ? `${fmtRate(attr)} of ${fmtRate(tot)} matched a socket` : 'no traffic this second';
+  $('attrsub').textContent = tot > 0 ? `${fmtRate(attr)} of ${fmtRate(tot)} ${lb.matched}` : (stor ? 'disks idle' : 'no traffic this second');
   $('attrbar').style.width = pct + '%';
   const active = s.procs.filter(p => p.pid >= 0 && (p.rx_bps + p.tx_bps) > 0).length;
   $('nproc').textContent = active;
-  $('nprocsub').textContent = `${s.procs.filter(p => p.pid >= 0).length} seen · ${s.meta.flows} flows/s`;
+  $('nprocsub').textContent = `${s.procs.filter(p => p.pid >= 0).length} seen · ${s.meta.flows} ${lb.flows}`;
   const m = s.meta;
-  $('health').innerHTML = m.drops ? `${m.drops}<small>dropped</small>` : 'ok';
-  $('healthsub').textContent = `tick ${m.tick_ms} ms · fd scan ${m.scan_ms} ms · netns ${m.netns}${m.conntrack ? ' · conntrack' : ''}`;
+  if (stor) {
+    $('health').innerHTML = `${Math.round(m.util)}<small>%</small>`;
+    $('healthsub').textContent = `busiest ${v.name === ALL ? 'of ' + m.disks + ' disks' : 'this second'} · tick ${m.tick_ms} ms · every ${s.interval} s`;
+  } else {
+    $('health').innerHTML = m.drops ? `${m.drops}<small>dropped</small>` : 'ok';
+    $('healthsub').textContent = `tick ${m.tick_ms} ms · fd scan ${m.scan_ms} ms · netns ${m.netns}${m.conntrack ? ' · conntrack' : ''}`;
+  }
   const b = $('banner');
   if (m.errors && m.errors.length) { b.hidden = false; b.textContent = 'capture errors: ' + m.errors.join('; '); } else b.hidden = true;
 
@@ -382,7 +443,9 @@ function render() {
   for (const p of rows) {
     const idle = p.rx_bps + p.tx_bps === 0;
     const key = String(p.pid), sw = slotOf.has(key) ? `<i class="sw" style="background:${colorOf(key)};margin-right:6px"></i>` : '<i class="sw" style="background:transparent;margin-right:6px"></i>';
-    const tags = (p.container ? `<span class="tag" title="container cgroup">${esc(p.container)}</span>` : '') + (!p.alive ? '<span class="tag">exited</span>' : '');
+    const tags = (p.container ? `<span class="tag" title="container cgroup">${esc(p.container)}</span>` : '') +
+                 (p.session ? `<span class="tag" title="Claude Code session id">${esc(p.session)}</span>` : '') +
+                 (!p.alive ? '<span class="tag">exited</span>' : '');
     html += `<tr class="row${p.alive ? '' : ' dead'}${idle ? ' idle' : ''}" data-pid="${p.pid}">` +
       `<td class="proc">${sw}<span class="n">${esc(p.name)}</span>${p.pid >= 0 ? `<span class="meta">${p.pid}</span>` : ''}${tags}` +
       (p.cmd ? `<span class="cmd" title="${esc(p.cmd)}">${esc(p.cmd)}</span>` : '') + `</td>` +
@@ -390,10 +453,13 @@ function render() {
       `<td><svg class="spark" data-spark="${p.pid}"></svg></td>` +
       `<td>${fmtBytes(p.rx_total)}</td><td>${fmtBytes(p.tx_total)}</td><td>${p.conns}</td><td>${esc(p.user)}</td></tr>`;
     if (expanded.has(p.pid)) {
-      html += `<tr class="detail"><td colspan="8">` + (p.remotes.length ?
-        `<div class="remotes"><span class="h">proto</span><span class="h">remote</span><span class="h r">down</span><span class="h r">up</span><span class="h r">last seen</span>` +
-        p.remotes.map(r => `<span>${esc(r.proto)}</span><span>${esc(r.host)}:${r.port}</span><span class="r">${fmtBytes(r.rx)}</span><span class="r">${fmtBytes(r.tx)}</span><span class="r">${fmtDur(r.idle_s)} ago</span>`).join('') + `</div>` :
-        '<span class="status">no remote endpoints recorded</span>') + `</td></tr>`;
+      let d;
+      if (!p.remotes.length) d = `<span class="status">${stor ? 'no files recorded' : 'no remote endpoints recorded'}</span>`;
+      else if (stor) d = `<div class="remotes"><span class="h">disk</span><span class="h">file</span><span class="h r">read</span><span class="h r">written</span><span class="h r">last active</span>` +
+        p.remotes.map(r => `<span>${esc(r.disk)}</span><span title="${esc(r.path)}">${esc(r.path.length > 90 ? '…' + r.path.slice(-89) : r.path)}</span><span class="r">${fmtBytes(r.rx)}</span><span class="r">${fmtBytes(r.tx)}</span><span class="r">${fmtDur(r.idle_s)} ago</span>`).join('') + `</div>`;
+      else d = `<div class="remotes"><span class="h">proto</span><span class="h">remote</span><span class="h r">down</span><span class="h r">up</span><span class="h r">last seen</span>` +
+        p.remotes.map(r => `<span>${esc(r.proto)}</span><span>${esc(r.host)}:${r.port}</span><span class="r">${fmtBytes(r.rx)}</span><span class="r">${fmtBytes(r.tx)}</span><span class="r">${fmtDur(r.idle_s)} ago</span>`).join('') + `</div>`;
+      html += `<tr class="detail"><td colspan="8">${d}</td></tr>`;
     }
   }
   $('rows').innerHTML = html;
@@ -425,17 +491,24 @@ async function poll() {
   const gen = ++pollGen;
   if (!paused) {
     try {
-      const r = await fetch('/api/state' + (iface ? '?iface=' + encodeURIComponent(iface) : ''), { cache: 'no-store' });
+      const r = await fetch('/api/state?mode=' + mode + (iface ? '&iface=' + encodeURIComponent(iface) : ''), { cache: 'no-store' });
       const body = await r.json().catch(() => null);
       if (gen !== pollGen) return;
       if (!r.ok) {
-        if (body && body.error && iface) {   // unknown / uncapturable interface: fall back to the default view
-          iface = null; try { localStorage.removeItem('tm.iface'); } catch (e) {}
+        if (body && body.mode_unavailable && mode !== 'network') {   // e.g. hdd_io_monitor.py missing: back to network
+          notice = body.error + ' — showing network';
+          mode = 'network'; $('mode').value = mode; try { localStorage.setItem('tm.mode', mode); } catch (e) {}
+          iface = null; try { iface = localStorage.getItem(ifaceKey()) || null; } catch (e) {}
+          throw new Error(notice);
+        }
+        if (body && body.error && iface) {   // unknown / uncapturable interface or disk: fall back to the default view
+          iface = null; try { localStorage.removeItem(ifaceKey()); } catch (e) {}
           notice = body.error + ' — showing the default view';
           throw new Error(notice);
         }
         throw new Error('HTTP ' + r.status);
       }
+      if (body.mode && body.mode !== mode) return;   // a stale response from before a mode switch
       state = body;
       $('status').textContent = notice; $('status').classList.toggle('err', !!notice);
       render();

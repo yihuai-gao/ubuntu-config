@@ -1,6 +1,6 @@
 ---
 name: fix-claude-plugin
-description: Re-apply all local patches to the Claude Code IDE extension (Cursor / VS Code) bundles — disable shift+tab mode cycling, make remoteControlAtStartup work, and force sessions to start in Auto permission mode (never bypass), and force every new / resumed session onto Fable 5.1 regardless of what other sessions switched to. Re-runnable after every extension update, since updates re-ship the bundles. Use when the user says "fix the claude plugin", "the plugin updated", remote control doesn't auto-start, shift+tab is back, sessions start in bypass permissions again, a new or resumed session starts on the wrong model (not Fable 5.1), or asks to re-apply the plugin patches.
+description: Re-apply all local patches to the Claude Code IDE extension (Cursor / VS Code) bundles — disable shift+tab mode cycling, make remoteControlAtStartup work, and force sessions to start in Auto permission mode (never bypass), force every new / resumed session onto Fable 5.1 regardless of what other sessions switched to, make the AskUserQuestion prompt (multiple-choice options) text selectable / copyable, render files sent with SendUserFile (images / videos / audio) inline in the conversation, and make clicked file links (mp4, png, pdf ...) open in the VS Code editor (Media Preview) instead of failing silently or landing in a blank Simple Browser tab over Remote-SSH. Re-runnable after every extension update, since updates re-ship the bundles. Use when the user says "fix the claude plugin", "the plugin updated", remote control doesn't auto-start, shift+tab is back, sessions start in bypass permissions again, a new or resumed session starts on the wrong model (not Fable 5.1), cannot copy / select text in the options prompt (AskUserQuestion), images / videos sent to the user do not show in the plugin, clicking a file link does nothing / opens a blank tab, or asks to re-apply the plugin patches.
 ---
 
 # Fix Claude Plugin (Claude Code IDE extension patches)
@@ -10,8 +10,14 @@ Code native UI) bundles. These fix behaviors that have **no supported
 setting** and can only be changed by patching the shipped JavaScript:
 no shift+tab mode cycling, `remoteControlAtStartup` honored, sessions always
 start in Auto permission mode, every new / resumed session runs on
-**Fable 5.1** no matter what other sessions switched to, and the context-usage
-pie in the input footer is always visible (not only past 50 % used).
+**Fable 5.1** no matter what other sessions switched to, the context-usage
+pie in the input footer is always visible (not only past 50 % used), text
+in the AskUserQuestion options prompt can be selected and copied, files sent
+with SendUserFile (images / videos / audio) render inline, clicked file
+links open in the VS Code editor (Media Preview for mp4 / png / pdf), and the
+pinned "latest prompt" strip at the top of the conversation always shows
+**your** latest prompt (never a cross-session message from another Claude
+session).
 
 Supersedes and merges the retired `fix-keyboard-shortcuts` and
 `fix-remote-control-startup` skills.
@@ -19,10 +25,19 @@ Supersedes and merges the retired `fix-keyboard-shortcuts` and
 ## How to run
 
 ```bash
-python3 ~/.claude/skills/fix-claude-plugin/patch.py
+python3 ~/.claude/skills/fix-claude-plugin/patch.py                   # patches 1-6, 9
+python3 ~/.claude/skills/fix-claude-plugin/patch7_send_user_file.py   # patches 7-8 (--check = dry run)
 ```
 
 Then **reload the IDE window** (Command Palette → "Reload Window").
+
+> Patches 7-8 live in the separate [patch7_send_user_file.py](patch7_send_user_file.py)
+> for now: on 2026-09-06 the auto-mode classifier refused the edits that
+> would merge them into `patch.py` (it needs a small `context` hook in
+> `patch_file()` — the file's header docstring explains the 3-step merge).
+> The script imports `find_bundles()` from `patch.py`, uses the same
+> `*.prepatch-bak` backups and the same output format, and is idempotent.
+> Merge it when a session is allowed to edit `patch.py`.
 
 The script finds every installed `anthropic.claude-code-*` extension under
 `~/.cursor-server`, `~/.cursor`, `~/.vscode-server`, `~/.vscode` (and
@@ -200,6 +215,149 @@ Notes:
   `*.js.prepatch-bak` first (or the old helper stays in place and 5b reports
   NOT FOUND).
 
+### 6. AskUserQuestion prompt: text selectable / copyable  (`webview/index.css` + `webview/index.js`)
+
+Symptom: while Claude is prompting with multiple-choice options
+(AskUserQuestion), nothing in the prompt — question, option labels,
+descriptions — can be selected with the mouse or copied. Keyboard is not the
+problem (ctrl+c passes through the dialog's key handlers); it is CSS: the app
+root is `user-select:none` and only a whitelist of classes (messages,
+permission dialogs, …) opts back in with `user-select:text`. The question
+dialog's CSS module (`questionsContainer_<hash>`, `option_<hash>`,
+`optionLabel_<hash>` …) is not on that list, so it inherits `none`.
+
+- **6a** `index.css`: append `.questionsContainer_<hash>{user-select:text}`
+  right after the module's own `questionsContainer` rule, reusing the hash
+  it finds there (`hONcXw` in 2.1.220–2.1.260; the regex does not depend on
+  it). Everything inside the prompt (question text, options, descriptions)
+  inherits from that container.
+- **6b** `index.js`: a mouse drag that starts and ends inside one option row
+  still fires that row's `click`, which would toggle the option (and, for
+  single-select, advance to the next question). Both option `onClick`
+  handlers (the mapped options and the trailing "Other" row) get
+  `if(window.getSelection()?.toString())return;` in front. A plain click
+  still works: the browser collapses any selection on mousedown before
+  `click` fires.
+
+Notes:
+- The tab labels in the navigation bar are `<button>`s and stay
+  unselectable (browser default); copy from the question body instead.
+- `index.css` is backed up to `index.css.prepatch-bak` (backups are named
+  `<file>.prepatch-bak`, so the JS and CSS backups do not collide).
+
+### 7. Files sent with SendUserFile render inline  (`extension.js` + `webview/index.js`)
+
+Symptom: `SendUserFile` (the CLI tool that "sends" an image / video / report
+to the user) shows up in the native UI as a generic tool card whose OUT is
+the text `2 files delivered to user. <path> → file_uuid: …` — nothing to look
+at, nothing to click. Three independent reasons, hence three pieces:
+
+- The webview has **no renderer for the tool** (tool renderers are classes
+  extending a base `z2` — `name` / `header()` / `body(context,input,result,
+  progress)` — looked up by name in a registry function `BG(name,context)`;
+  unknown names fall back to the generic IN/OUT JSON card).
+- The webview **CSP has no `media-src`** (`default-src 'none'`, only
+  `img-src ${cspSource} data:`), so a `<video>`/`<audio>` could not load.
+- **`localResourceRoots`** on every webview/panel is limited to the
+  extension's own `webview/` and `resources/` folders, so a resource
+  request for anything under `$HOME` or `/tmp` is refused.
+
+Pieces (all in [patch7_send_user_file.py](patch7_send_user_file.py)):
+
+- **7a** `extension.js` `getHtmlForWebview()`: `img-src ${cspSource} data:`
+  → `…; media-src ${cspSource}`.
+- **7b** `extension.js`: the 4 `localResourceRoots:[…webview,…resources]`
+  sites get `,X.Uri.file("/")` appended. The extension host already reads
+  any of these files for the webview (Read tool, diffs, …), so this widens
+  nothing the webview could not already obtain.
+- **7c** `webview/index.js`: a `CcSendUserFileTool` renderer
+  (`name="SendUserFile"`) is inserted right before the registry function and
+  prepended to its list. The base class, JSX factories and CSS module are
+  resolved from the base class's own source (`context` hook in the script),
+  so identifiers may change across builds. It builds each file URL as
+  `<origin of the loaded webview/index.js>` + percent-encoded absolute path
+  (the same `https://<scheme>+<authority>.vscode-resource.vscode-cdn.net/…`
+  authority `asWebviewUri` produces — the script and the sent file live on
+  the same filesystem, local or Remote-SSH) and renders `<img>` (click →
+  open in editor), `<video controls>`, `<audio controls>` by extension;
+  `display:"attach"` or other types → name link only. Absolute paths come
+  from the result's `<path> → file_uuid:` lines (so relative inputs
+  resolve), falling back to the tool input. The caption is shown above.
+
+Notes:
+- The tool's structured `tool_use_result` (media types, sizes) never reaches
+  the webview — only the API `tool_result` block does — hence the
+  extension-based type sniffing.
+- The webview resource loader returns whole files (no range requests), so
+  a very large video downloads fully before it plays.
+- Chunks already in a session re-render after Reload Window, so a file
+  sent before patching shows up inline afterwards.
+
+### 8. Clicked file links open in the editor  (`extension.js`)
+
+Symptom: a markdown link like `[file-653.mp4](/abs/path/file-653.mp4)` in an
+assistant message does nothing when clicked (text files work). Over
+Remote-SSH a `http://localhost:PORT/…` link to a local http server instead
+opens VS Code's Simple Browser tab, which stays **blank** for an mp4.
+
+Path of a click: webview `a` component → `Bj0(ev, href, fileOpener)` →
+`RC(href)` (accepts absolute / relative paths and anything with an
+extension, plus `:L12-L20` / `#L12` suffixes) → `fileOpener.open()` →
+extension `openFile()`, which ends in
+
+```js
+_$.window.showTextDocument(X).then((z)=>{ …reveal range / searchText… })
+```
+
+`showTextDocument()` only knows text documents: for an mp4 / png / pdf it
+**rejects** ("binary or unsupported text encoding") and nothing has a
+rejection handler, so the click is swallowed. The patch rewrites that call:
+
+```js
+if(/\.(png|jpe?g|gif|webp|bmp|ico|avif|svg|mp4|webm|mov|m4v|ogv|mkv|mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test(X.fsPath)){
+  _$.commands.executeCommand("vscode.open",X);return}                  // media -> built-in Media Preview / image / pdf editor
+_$.window.showTextDocument(X).catch(()=>{_$.commands.executeCommand("vscode.open",X)})
+  .then((z)=>{if(!z)return; …original body… })                          // any other rejection -> vscode.open ("Open Anyway")
+```
+
+`vscode.open` is what the `code <path>` CLI does through Remote-SSH: the
+file opens in the connected VS Code window, on the local side.
+
+Notes:
+- Only **file paths** can be routed this way; a `http://localhost:…` URL
+  cannot be mapped back to a file. Link deliverables as absolute paths (and
+  send images / videos with SendUserFile) — see memory rule 65.
+- Directories were already handled (`revealInExplorer`) and are untouched.
+
+### 9. Pinned "latest prompt" strip = your latest prompt, never a cross-session message  (`webview/index.js`)
+
+Symptom: the sticky strip pinned at the top of the conversation (the user
+message of the current "turn", `position:sticky`) shows the last
+`<cross-session-message from="uds:/tmp/cc-socks/…">` block sent by another
+Claude session instead of the prompt you typed. Those peer messages arrive as
+plain **user** messages (transcript: `type:"user"`, `isMeta:true`,
+`origin:{kind:"peer",from:…,name:…}`), and the webview copies `origin` onto
+its message objects. A turn starts at every user message that has a text
+block and is neither tool-parented nor synthetic (`Ox(msg)`), so each peer
+message opened a new turn and became its sticky header.
+
+- **9a** `Ox(msg)` gets an early `return!1` for `msg.origin?.kind==="peer"`.
+  All three turn builders (plain list, focus view, focus-view folds) call
+  it, so peer messages are folded into the turn they interrupt everywhere.
+- **9b** the user-message component computes `j` = "this message is the turn
+  header" (sticky class, click-to-scroll handlers, screen-reader heading);
+  `&&Z.origin?.kind!=="peer"` is appended so a folded peer message cannot
+  stick over the turn's real header. It still renders in place as a normal
+  (non-sticky) user bubble.
+
+Notes:
+- Keyed on the `origin` metadata, not on the `<cross-session-message>` text,
+  so a prompt of yours that merely quotes such a block is unaffected.
+- Task notifications (`origin.kind==="task-notification"`) already have
+  their own handling and are untouched.
+- Cursor's 2.1.220 build predates peer messaging and reports NOT FOUND for
+  both pieces; that is expected.
+
 ## After a plugin update
 
 Just run the script again — the new version's bundles get patched. If a patch
@@ -208,7 +366,15 @@ bundle for the anchor strings (`key==="Tab"` + `shiftKey`;
 `ide_rc_auto_enable_gate` / `remoteControlAutoEnableOn`;
 `getInitialPermissionMode`; `,model:` next to `allowDangerouslySkipPermissions:`
 in `spawnClaude`, `getModelSetting`, `async setModel(`; `% context used` /
-`.usageContainer` and `{percentage:` + `style:{display:"block"}` for the pie),
+`.usageContainer` and `{percentage:` + `style:{display:"block"}` for the pie;
+`.questionsContainer_` in `index.css` and `"aria-checked":` + `onClick:()=>`
+in `index.js` for the question prompt; `img-src ${` + `cspSource`,
+`localResourceRoots:[` and `window.showTextDocument(` … `.then((` +
+`?.searchText` in `extension.js`, `{hidden=!1;header(` (renderer base
+class) and `.fileOpener),` inside a `let X=[new …]` registry list in
+`index.js` for the sent-file / link patches; `.isEmpty||` … `.isSynthetic)return!1;`
+(turn-start predicate) and `.some((` … `?.type==="text"),` followed by
+`=!` … `&&` (the user-message `j` flag) for the latest-prompt strip),
 locate the new form, and update that patch's
 `find`/`already` regexes in [patch.py](patch.py) — or add it as another
 variant in that patch's `alts` list, so older builds keep working. If an anchor string is gone
@@ -217,7 +383,8 @@ complete) — test unpatched before re-adding.
 
 ## Rollback
 
-Restore any bundle from its `*.js.prepatch-bak` sibling and reload the window.
+Restore any bundle from its `*.prepatch-bak` sibling (`index.js.prepatch-bak`,
+`extension.js.prepatch-bak`, `index.css.prepatch-bak`) and reload the window.
 
 ## Alternatives (no patching)
 

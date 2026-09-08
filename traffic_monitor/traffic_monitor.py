@@ -20,10 +20,15 @@ How it works
     (from /proc/net/dev) are always reported for the switcher menu.
   * A tiny HTTP server (default http://127.0.0.1:8787) serves the dashboard
     and /api/state (JSON).  --text prints a top-like table instead.
+  * Storage mode (dashboard "network / storage" switch, /api/state?mode=storage):
+    disk read/write throughput of every /storage/hdd* and ssd* (or --disk)
+    with per-process attribution from /proc/<pid>/fdinfo offsets, sampled by
+    the sibling hdd_io_monitor.py (../hdd_io_monitor/ or next to this file).
 """
 
 import argparse
 import collections
+import importlib.util
 import ipaddress
 import json
 import os
@@ -766,68 +771,233 @@ class Monitor:
             if v is None:
                 return None
             now = time.time()
-            procs = []
-            for pid, ps in v.procs.items():
-                info = ps.info or {}
-                remotes = sorted(ps.remotes.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)[:12]
-                procs.append({
-                    "pid": pid, "name": info.get("name", "?"), "cmd": info.get("cmd", ""),
-                    "user": info.get("user", ""), "container": info.get("container", ""),
-                    "alive": info.get("alive", False),
-                    "rx_bps": ps.rx_rate, "tx_bps": ps.tx_rate,
-                    "rx_total": ps.rx_total, "tx_total": ps.tx_total,
-                    "conns": ps.conns, "idle_s": now - ps.last_active,
-                    "spark": [[round(a), round(b)] for a, b in ps.spark],
-                    "remotes": [{"proto": PROTO_NAMES.get(rk[0], str(rk[0])), "host": ip_str(rk[1]),
-                                 "port": rk[2], "rx": v[0], "tx": v[1], "idle_s": now - v[2]}
-                                for rk, v in remotes],
-                })
-            procs.sort(key=lambda p: (-(p["rx_bps"] + p["tx_bps"]), -(p["rx_total"] + p["tx_total"])))
 
-            # history: top entities over the window + "other"
-            sums = collections.Counter()
-            for _t, d in v.hist:
-                for pid, (rx, tx) in d.items():
-                    sums[pid] += rx + tx
-            top = [pid for pid, _ in sums.most_common(top_series)]
-            top_set = set(top)
-            ts, rx_series, tx_series = [], {str(p): [] for p in top}, {str(p): [] for p in top}
-            rx_series["other"], tx_series["other"] = [], []
-            for t, d in v.hist:
-                ts.append(round(t))
-                orx = otx = 0.0
-                for p in top:
-                    pv = d.get(p)
-                    rx_series[str(p)].append(round(pv[0]) if pv else 0)
-                    tx_series[str(p)].append(round(pv[1]) if pv else 0)
-                for pid, (rx, tx) in d.items():
-                    if pid not in top_set:
-                        orx += rx
-                        otx += tx
-                rx_series["other"].append(round(orx))
-                tx_series["other"].append(round(otx))
-            names = {str(p): (v.procs[p].info or {}).get("name", "?") if p in v.procs else "?" for p in top}
-            names["other"] = "other"
+            def fmt_remote(rk, val, now_):
+                return {"proto": PROTO_NAMES.get(rk[0], str(rk[0])), "host": ip_str(rk[1]),
+                        "port": rk[2], "rx": val[0], "tx": val[1], "idle_s": now_ - val[2]}
 
+            procs, history = view_payload(v, now, top_series, fmt_remote)
             return {
-                "t": now, "started": v.start, "interval": self.interval,
+                "t": now, "started": v.start, "interval": self.interval, "mode": "network",
                 "hostname": self.hostname,
                 "view": {"name": name, "ifaces": list(v.ifaces), "started": v.start},
                 "default_view": self.default_view, "captured": list(self.sniffers),
                 "ifaces": self.iface_list(),
                 "totals": dict(v.totals),
                 "procs": procs,
-                "history": {"t": ts, "rx": rx_series, "tx": tx_series, "names": names, "order": [str(p) for p in top]},
+                "history": history,
                 "meta": {"flows": self.flows, "drops": self.drops, "scan_ms": round(self.scan_ms, 1), "tick_ms": round(self.tick_ms, 1),
                          "conntrack": self.use_conntrack, "netns": len(self.netns),
                          "errors": self.errors()},
             }
 
 
+def view_payload(v, now, top_series, fmt_remote):
+    """procs + history of one View in dashboard shape. fmt_remote((key0, key3, key4), [rx, tx, last]) -> dict or None."""
+    procs = []
+    for pid, ps in v.procs.items():
+        info = ps.info or {}
+        remotes = sorted(ps.remotes.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)[:12]
+        rem = [r for r in (fmt_remote(rk, val, now) for rk, val in remotes) if r is not None]
+        procs.append({
+            "pid": pid, "name": info.get("name", "?"), "cmd": info.get("cmd", ""),
+            "user": info.get("user", ""), "container": info.get("container", ""),
+            "session": info.get("session", ""),
+            "alive": info.get("alive", False),
+            "rx_bps": ps.rx_rate, "tx_bps": ps.tx_rate,
+            "rx_total": ps.rx_total, "tx_total": ps.tx_total,
+            "conns": ps.conns, "idle_s": now - ps.last_active,
+            "spark": [[round(a), round(b)] for a, b in ps.spark],
+            "remotes": rem,
+        })
+    procs.sort(key=lambda p: (-(p["rx_bps"] + p["tx_bps"]), -(p["rx_total"] + p["tx_total"])))
+
+    # history: top entities over the window + "other"
+    sums = collections.Counter()
+    for _t, d in v.hist:
+        for pid, (rx, tx) in d.items():
+            sums[pid] += rx + tx
+    top = [pid for pid, _ in sums.most_common(top_series)]
+    top_set = set(top)
+    ts, rx_series, tx_series = [], {str(p): [] for p in top}, {str(p): [] for p in top}
+    rx_series["other"], tx_series["other"] = [], []
+    for t, d in v.hist:
+        ts.append(round(t))
+        orx = otx = 0.0
+        for p in top:
+            pv = d.get(p)
+            rx_series[str(p)].append(round(pv[0]) if pv else 0)
+            tx_series[str(p)].append(round(pv[1]) if pv else 0)
+        for pid, (rx, tx) in d.items():
+            if pid not in top_set:
+                orx += rx
+                otx += tx
+        rx_series["other"].append(round(orx))
+        tx_series["other"].append(round(otx))
+    names = {str(p): (v.procs[p].info or {}).get("name", "?") if p in v.procs else "?" for p in top}
+    names["other"] = "other"
+    return procs, {"t": ts, "rx": rx_series, "tx": tx_series, "names": names, "order": [str(p) for p in top]}
+
+
+# --------------------------------------------------------------------------- #
+# Storage mode: disk read/write with per-process attribution (hdd_io_monitor)
+# --------------------------------------------------------------------------- #
+def load_hdd_io_monitor():
+    """Import the sibling hdd_io_monitor.py (next to this file, or ../hdd_io_monitor/). None if absent."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for cand in (os.path.join(here, "hdd_io_monitor.py"),
+                 os.path.join(here, os.pardir, "hdd_io_monitor", "hdd_io_monitor.py")):
+        if os.path.isfile(cand):
+            spec = importlib.util.spec_from_file_location("hdd_io_monitor", cand)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+    return None
+
+
+class StorageMonitor:
+    """Per-disk / per-process disk I/O, in the same View + snapshot shape as Monitor so the dashboard
+    can switch between them. Runs as root, so every user's /proc/<pid>/fd is attributed."""
+
+    def __init__(self, hio, disks, interval=2.0, history=300, hostname=""):
+        self.hio = hio
+        self.interval = interval
+        self.history_len = history
+        self.hostname = hostname
+        self.disks = hio.resolve_mounts(disks)          # name -> (mount point, block device)
+        self.sampler = hio.Sampler(self.disks, False)
+        self.views = {d: View(d, [d], history) for d in self.disks}
+        if len(self.disks) > 1:
+            self.views[ALL_VIEW] = View(ALL_VIEW, list(self.disks), history)
+        self.lock = threading.Lock()
+        self.disk_rates = {}                            # name -> (r_bps, w_bps, r_total, w_total, r_iops, w_iops, util)
+        self.usage = {}                                 # name -> (size, used, avail) bytes from statvfs
+        self.tick_ms = 0.0
+        self.handles = 0
+        self._info_cache = {}
+        self.start = time.time()
+
+    @property
+    def default_view(self):
+        return ALL_VIEW if len(self.disks) > 1 else next(iter(self.disks))
+
+    def start_threads(self):
+        threading.Thread(target=self._loop, name="storage", daemon=True).start()
+
+    def _loop(self):
+        while True:
+            time.sleep(self.interval)
+            try:
+                self._tick()
+            except Exception as e:
+                print(f"[traffic_monitor] storage tick error: {e!r}", file=sys.stderr)
+
+    def _tick(self):
+        t0 = time.monotonic()
+        now = time.time()
+        dt, rates, rows, _unattributed = self.sampler.sample()
+        self.sampler.cum.clear()                        # View keeps the totals; the CLI-only summary would grow forever
+        seen = {row[0] for row in rows}
+        self.sampler.meta = {p: m for p, m in self.sampler.meta.items() if p in seen}
+        sector = self.hio.SECTOR
+        disk_rates = {}
+        for name, (_mp, dev) in self.disks.items():
+            r_bps, w_bps, ri, wi, util = rates.get(name, (0.0, 0.0, 0.0, 0.0, 0.0))
+            cum = self.sampler.prev_disk.get(dev)       # cumulative since boot (updated by sample())
+            disk_rates[name] = (r_bps, w_bps, cum[1] * sector if cum else 0, cum[3] * sector if cum else 0, ri, wi, util)
+        # resolved entries per disk: (pid, key, read bytes, written bytes); key = (disk, -, -, path, -) so
+        # View.remotes (keyed on key[0], key[3], key[4]) becomes a per-file table.
+        resolved = collections.defaultdict(list)
+        attributed = collections.defaultdict(lambda: [0.0, 0.0])
+        handles = 0
+        for pid, _user, _sess, _comm, _state, disk, r, w, _files, _cmd, per_file in rows:
+            a = attributed[disk]
+            a[0] += r
+            a[1] += w
+            for path, (rb, wb) in per_file.items():
+                resolved[disk].append((pid, (disk, None, None, path, None), rb, wb))
+                handles += 1
+        for disk, (r_bps, w_bps, *_rest) in disk_rates.items():
+            ur, uw = max(0.0, r_bps - attributed[disk][0]), max(0.0, w_bps - attributed[disk][1])
+            if ur or uw:
+                resolved[disk].append((PID_UNATTRIBUTED, (disk, None, None, "", None), ur * dt, uw * dt))
+        usage = {}
+        for name, (mp, _dev) in self.disks.items():
+            try:
+                st = os.statvfs(mp)
+            except OSError:
+                continue
+            size = st.f_blocks * st.f_frsize
+            usage[name] = (size, size - st.f_bfree * st.f_frsize, st.f_bavail * st.f_frsize)
+        view_rates = {d: v[:4] for d, v in disk_rates.items()}
+        with self.lock:
+            self._info_cache = {p: v for p, v in self._info_cache.items() if now - v[0] < 300}
+            for name, view in self.views.items():
+                res = []
+                for d in view.ifaces:
+                    res.extend(resolved.get(d, ()))
+                view.update(res, [0, 0], dt, now, view_rates, self._info_for)
+            self.disk_rates = disk_rates
+            self.usage = usage
+            self.handles = handles
+            self.tick_ms = (time.monotonic() - t0) * 1000
+
+    def _info_for(self, pid):
+        if pid == PID_UNATTRIBUTED:
+            return {"name": "unattributed", "cmd": "disk I/O matching no open file (page-cache writeback, readahead, mmap, exited processes)",
+                    "user": "", "container": "", "session": "", "alive": True}
+        c = self._info_cache.get(pid)
+        now = time.time()
+        if c is None or now - c[0] > 30:
+            info = proc_info(pid)
+            # session comes from the sampler (environ); keep the last known one once the process is gone
+            info["session"] = self.sampler.meta.get(pid, {}).get("session") or (c[1].get("session", "") if c else "")
+            c = self._info_cache[pid] = (now, info)
+        return c[1]
+
+    def disk_list(self):
+        out = []
+        for name, (mp, dev) in self.disks.items():
+            r = self.disk_rates.get(name, (0.0, 0.0, 0, 0, 0.0, 0.0, 0.0))
+            u = self.usage.get(name, (0, 0, 0))
+            out.append({"name": name, "dev": dev, "mount": mp, "rx_bps": r[0], "tx_bps": r[1], "rx_total": r[2], "tx_total": r[3],
+                        "r_iops": r[4], "w_iops": r[5], "util": r[6], "size": u[0], "used": u[1], "avail": u[2],
+                        "state": "up", "captured": True})
+        return out
+
+    def snapshot(self, view=None, top_series=7):
+        with self.lock:
+            name = view or self.default_view
+            v = self.views.get(name)
+            if v is None:
+                return None
+            now = time.time()
+
+            def fmt_file(rk, val, now_):
+                if not rk[1]:
+                    return None
+                return {"disk": rk[0], "path": rk[1], "rx": val[0], "tx": val[1], "idle_s": now_ - val[2]}
+
+            procs, history = view_payload(v, now, top_series, fmt_file)
+            util = max((self.disk_rates[d][6] for d in v.ifaces if d in self.disk_rates), default=0.0)
+            return {
+                "t": now, "started": v.start, "interval": self.interval, "mode": "storage",
+                "hostname": self.hostname,
+                "view": {"name": name, "ifaces": list(v.ifaces), "started": v.start},
+                "default_view": self.default_view, "captured": list(self.disks),
+                "ifaces": self.disk_list(),
+                "totals": dict(v.totals),
+                "procs": procs,
+                "history": history,
+                "meta": {"flows": self.handles, "drops": 0, "scan_ms": 0, "tick_ms": round(self.tick_ms, 1),
+                         "util": round(util, 1), "disks": len(self.disks), "errors": []},
+            }
+
+
 # --------------------------------------------------------------------------- #
 # HTTP
 # --------------------------------------------------------------------------- #
-def make_handler(monitor, index_html):
+def make_handler(monitor, index_html, storage=None, storage_error=None):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):  # quiet
             pass
@@ -848,8 +1018,18 @@ def make_handler(monitor, index_html):
             if path in ("/", "/index.html"):
                 self._send(200, "text/html; charset=utf-8", index_html.encode())
             elif path == "/api/state":
-                # ?iface=<name> selects a view; an interface not captured yet is captured on demand.
-                view = urllib.parse.parse_qs(query).get("iface", [None])[0] or None
+                # ?mode=network|storage picks the monitor; ?iface=<name> selects a view (an interface
+                # not captured yet is captured on demand; a disk must be one of the monitored ones).
+                q = urllib.parse.parse_qs(query)
+                view = q.get("iface", [None])[0] or None
+                mode = q.get("mode", ["network"])[0]
+                if mode == "storage":
+                    if storage is None:
+                        return self._json(400, {"error": f"storage mode unavailable: {storage_error}", "mode_unavailable": True})
+                    snap = storage.snapshot(view)
+                    if snap is None:
+                        return self._json(404, {"error": f"unknown disk {view!r}", "default_view": storage.default_view})
+                    return self._json(200, snap)
                 if view and view != ALL_VIEW:
                     err = monitor.ensure_capture(view)
                     if err:
@@ -932,6 +1112,10 @@ def main():
     ap.add_argument("--interval", type=float, default=1.0, help="sampling interval in seconds")
     ap.add_argument("--history", type=int, default=300, help="seconds of history kept for the charts")
     ap.add_argument("--no-conntrack", action="store_true", help="do not de-NAT container traffic via nf_conntrack")
+    ap.add_argument("-d", "--disk", action="append",
+                    help="disk for storage mode, hddN/ssdN or a mount point (repeatable). Default: every mounted /storage/hdd* and ssd*")
+    ap.add_argument("--storage-interval", type=float, default=2.0, help="storage sampling interval in seconds (default 2)")
+    ap.add_argument("--no-storage", action="store_true", help="disable storage mode")
     ap.add_argument("--text", action="store_true", help="print a top-like table to the terminal instead of serving HTTP")
     ap.add_argument("--nice", type=int, default=10, help="nice value for the monitor itself (default 10; it drops its own packets under CPU contention instead of slowing other processes)")
     ap.add_argument("--selftest", action="store_true", help="run parser self-tests and exit")
@@ -971,10 +1155,27 @@ def main():
             pass
         return
 
+    storage, storage_error = None, "disabled with --no-storage"
+    if not args.no_storage:
+        hio = load_hdd_io_monitor()
+        if hio is None:
+            storage_error = "hdd_io_monitor.py not found next to traffic_monitor.py or in ../hdd_io_monitor/"
+        else:
+            try:
+                storage = StorageMonitor(hio, args.disk or [], interval=args.storage_interval,
+                                         history=args.history, hostname=mon.hostname)
+                storage.start_threads()
+            except SystemExit as e:             # resolve_mounts() exits on an unknown disk
+                storage, storage_error = None, str(e)
+        if storage is None:
+            print(f"[traffic_monitor] storage mode unavailable: {storage_error}", file=sys.stderr)
+        else:
+            print(f"[traffic_monitor] storage mode: {', '.join(storage.disks)} every {args.storage_interval:g} s", file=sys.stderr)
+
     here = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(here, "dashboard.html"), encoding="utf-8") as f:
         index_html = f.read()
-    srv = ThreadingHTTPServer((args.bind, args.port), make_handler(mon, index_html))
+    srv = ThreadingHTTPServer((args.bind, args.port), make_handler(mon, index_html, storage, storage_error))
     srv.daemon_threads = True
     print(f"[traffic_monitor] {mon.hostname}: capturing {', '.join(ifaces)}"
           f"{' (conntrack de-NAT on)' if mon.use_conntrack else ''}", file=sys.stderr)
