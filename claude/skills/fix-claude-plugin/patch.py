@@ -7,6 +7,11 @@ directory), so this script is re-runnable: it finds all installed extension
 copies, patches any that still contain the original code, and skips ones
 already patched. Run it again after each extension update.
 
+The patches are written for ONE code shape: the build named by MIN_VERSION
+below (and whatever later builds keep that shape). Older installs are
+skipped. When an update restructures a spot, rewrite that patch for the new
+shape and bump MIN_VERSION -- no multi-version variants are kept.
+
 Current patches (see SKILL.md for full background on each):
 
 1. [webview/index.js] shift+tab "cycle permission mode" -> no-op.
@@ -19,9 +24,7 @@ Current patches (see SKILL.md for full background on each):
    false), independent of your setting. Until Anthropic flips it, the
    setting is silently ignored in the IDE. We kill only that gate and keep
    the `remote_control_auto_enable` check (your remoteControlAtStartup), so
-   auto-enable follows settings.json exactly. Two code shapes are handled
-   (2.1.233+ helper form, and the older inline-gate method); see the patch
-   entry. Builds ~2.1.181-2.1.201 had neither -> NOT FOUND.
+   auto-enable follows settings.json exactly.
 
 3. [extension.js] Start every session in "auto" permission mode.
    getInitialPermissionMode() otherwise resolves: claudeCode.initialPermissionMode
@@ -73,7 +76,7 @@ Current patches (see SKILL.md for full background on each):
        next to the module's own rule (hash read from the existing rule).
    6b. [index.js] a drag-select that starts and ends inside one option
        still fires that option's onClick (= toggles it / advances to the
-       next question). Guard both option onClick handlers with
+       next question). Guard the option-row component's onClick with
        `if(window.getSelection()?.toString())return;`.
 
 7. [extension.js + webview/index.js] Files sent with the SendUserFile tool
@@ -106,7 +109,7 @@ Current patches (see SKILL.md for full background on each):
    with `origin.kind === "peer"`, so unpatched each one opens a new "turn"
    and becomes that turn's sticky header (position:sticky user message),
    replacing your prompt in the strip. Two pieces:
-   9a. the turn-start predicate (`Ox(msg)`: user message with text, not a
+   9a. the turn-start predicate (`Ju(msg)`: user message with text, not a
        tool-parented / synthetic one) returns false for peer-origin
        messages, so they are folded into the CURRENT turn (all three turn
        builders -- plain, focus view, focus-view folds -- share it).
@@ -115,6 +118,14 @@ Current patches (see SKILL.md for full background on each):
        messages, so a folded peer message cannot stick over the turn's own
        header. It still renders as a normal (non-sticky) user bubble in
        place.
+
+10. [extension.js] "New session" opens in the editor group you are in
+    instead of splitting a new column. createPanel() reuses a group that
+    already holds Claude tabs, and otherwise calls startClaudeGroup()
+    (newGroupRight / newGroupBelow). We drop that call, so the fallback is
+    ViewColumn.Active.
+
+(Patches 7-8 live in patch7_send_user_file.py.)
 
 Each patch matches by STRUCTURE (minified identifiers change every release;
 API-shape names like `remoteControlAutoEnableOn` survive), using regex
@@ -154,11 +165,6 @@ PIE_ARC_FN = (
 #   already   : compiled regex that is True iff this file is ALREADY patched
 #               (used to distinguish "already done" from "not found / changed")
 #
-# A patch may instead supply `alts`: a list of (find, replace, already)
-# triples, for behaviors whose shipping code shape differs across extension
-# versions. The first variant that matches is applied; the patch counts as
-# "already patched" if ANY variant's `already` matches.
-#
 # A patch may also supply `context`: a function(text) -> dict | None that
 # resolves minified identifiers found ELSEWHERE in the bundle (e.g. the JSX
 # factory, the tool-renderer base class). It runs before `find`; None means
@@ -172,8 +178,7 @@ PATCHES = [
         # Original:  X.key==="Tab"&&X.shiftKey){X.preventDefault(),Y();return}
         # Y() is the permission-mode cycle call. We drop ",Y()" so shift+tab
         # is swallowed (preventDefault + return) and does nothing.
-        # NB: minified identifiers may contain "$" (2.1.251 named the cycle
-        # fn `$6`), so match [\w$]+ rather than \w+.
+        # NB: minified identifiers may contain "$", so match [\w$]+ not \w+.
         "find": re.compile(
             r'(?P<p>[\w$]+)\.key==="Tab"&&(?P=p)\.shiftKey\)\{'
             r'(?P=p)\.preventDefault\(\),[\w$]+\(\);return\}'
@@ -189,61 +194,31 @@ PATCHES = [
     {
         "name": "remoteControlAtStartup rollout gate -> always on",
         "target": "extension.js",
-        # Two shipping shapes seen so far; both AND-gate auto-enable on the
-        # GrowthBook rollout kill-switch `ide_rc_auto_enable_gate`
-        # (tengu_ide_rc_auto_enable, default false). In both we kill ONLY the
-        # gate and keep the `remote_control_auto_enable` check (= your
-        # remoteControlAtStartup setting), so auto-enable follows settings.json.
-        #
-        # (a) 2.1.233+ : the gate moved into a module-level helper that also
-        #     folds in the setting check, and the call site no longer tests
-        #     the setting separately:
-        #       remoteControlAutoEnableOn(e){return aTe(e)}
-        #       function aTe(e){if(e.remote_control_auto_enable!==!0)return!1;
-        #         return e.remote_control_auto_on_by_default===!1
-        #             ||e.ide_rc_auto_enable_gate===!0}
-        #     -> replace the second return with `return!0`. (Forcing
-        #     remoteControlAutoEnableOn itself to true would be WRONG here: it
-        #     would auto-connect even with the setting off.)
-        #
-        # (b) ~2.1.203-2.1.23x : the method carried the gate inline and the
-        #     call site tested the setting itself:
-        #       remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}
-        #       ...this.remoteControlAutoEnableOn(g)&&g.remote_control_auto_enable&&...
-        #     -> force the method to `return!0`.
-        #
-        # Builds ~2.1.181-2.1.201 had neither (NOT FOUND on those).
-        # Only minified parameter names change between releases (2.1.245 uses `$`,
-        # hence `[\w$]+` for identifiers).
-        "alts": [
-            (
-                re.compile(
-                    r'\{if\(([\w$]+)\.remote_control_auto_enable!==!0\)return!1;'
-                    r'return \1\.remote_control_auto_on_by_default===!1'
-                    r'\|\|\1\.ide_rc_auto_enable_gate===!0\}'
-                ),
-                lambda m: (
-                    f'{{if({m.group(1)}.remote_control_auto_enable!==!0)'
-                    f'return!1;return!0}}'
-                ),
-                re.compile(
-                    r'\{if\([\w$]+\.remote_control_auto_enable!==!0\)'
-                    r'return!1;return!0\}'
-                ),
-            ),
-            (
-                re.compile(
-                    r'remoteControlAutoEnableOn\(([\w$]+)\)\{'
-                    r'return \1\.ide_rc_auto_enable_gate===!0\}'
-                ),
-                lambda m: (
-                    f'remoteControlAutoEnableOn({m.group(1)}){{return!0}}'
-                ),
-                re.compile(
-                    r'remoteControlAutoEnableOn\([\w$]+\)\{return!0\}'
-                ),
-            ),
-        ],
+        # The gate lives in a module-level helper that also folds in the
+        # setting check (the call site no longer tests the setting itself):
+        #   remoteControlAutoEnableOn(e){return zu1(e)}
+        #   function zu1(e){if(e.remote_control_auto_enable!==!0)return!1;
+        #     return e.remote_control_auto_on_by_default===!1
+        #         ||e.ide_rc_auto_enable_gate===!0}
+        # `ide_rc_auto_enable_gate` is the GrowthBook rollout kill-switch
+        # (tengu_ide_rc_auto_enable, default false). Replace only the second
+        # return with `return!0`, keeping the `remote_control_auto_enable`
+        # check (= your remoteControlAtStartup setting). Forcing
+        # remoteControlAutoEnableOn itself to true would be WRONG: it would
+        # auto-connect even with the setting off.
+        "find": re.compile(
+            r'\{if\(([\w$]+)\.remote_control_auto_enable!==!0\)return!1;'
+            r'return \1\.remote_control_auto_on_by_default===!1'
+            r'\|\|\1\.ide_rc_auto_enable_gate===!0\}'
+        ),
+        "replace": lambda m: (
+            f'{{if({m.group(1)}.remote_control_auto_enable!==!0)'
+            f'return!1;return!0}}'
+        ),
+        "already": re.compile(
+            r'\{if\([\w$]+\.remote_control_auto_enable!==!0\)'
+            r'return!1;return!0\}'
+        ),
     },
     {
         "name": 'initial permission mode -> "auto" (never bypass)',
@@ -288,72 +263,44 @@ PATCHES = [
     {
         "name": "4c in-session model switch -> session-only (no settings.json write)",
         "target": "extension.js",
-        # async setModel($,Q){return await this.writeUserSettingsAndPush($,
-        #   {model:Q.value==="default"?null:Q.value}),{type:"set_model_response"}}
-        # writeUserSettingsAndPush(channel, settings, flagsOnly): with
+        # async setModel($,J){if(typeof J!=="object"||...)throw Error("set_model:
+        #   malformed request");let Q=await this.writeUserSettingsAndPush($,
+        #   {model:J.value==="default"?null:J.value});
+        #   return{type:"set_model_response",...Q!==void 0&&{applied:Q}}}
+        # writeUserSettingsAndPush(channel, settings, flagsOnly, scope): with
         # flagsOnly truthy it skips the ~/.claude/settings.json write and only
         # calls query.applyFlagSettings(settings) on the live session -- the
         # same path the webview's own `apply_settings {flagsOnly:true}` uses.
-        # Two shapes (writeUserSettingsAndPush(channel, settings, flagsOnly,
-        # scope) is unchanged in both -- `!flagsOnly` still gates the disk write):
-        #   <= 2.1.259: async setModel($,Q){return await this.writeUserSettingsAndPush($,
-        #                 {model:...}),{type:"set_model_response"}}
-        #   >= 2.1.260: async setModel($,Q){let J=await this.writeUserSettingsAndPush($,
-        #                 {model:...});return{type:"set_model_response",...J!==void 0&&{applied:J}}}
-        #   >= 2.1.274: same, with a brace-free guard in front of the `let`:
-        #               {if(typeof Q!=="object"||...)throw Error("set_model: malformed request");let J=...
-        "alts": [
-            (
-                re.compile(
-                    r'(async setModel\(([\w$]+),([\w$]+)\)\{return await '
-                    r'this\.writeUserSettingsAndPush\(\2,'
-                    r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
-                ),
-                lambda m: f'{m.group(1)},!0)',
-                re.compile(
-                    r'async setModel\(([\w$]+),([\w$]+)\)\{return await '
-                    r'this\.writeUserSettingsAndPush\(\1,'
-                    r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
-                ),
-            ),
-            (
-                re.compile(
-                    r'(async setModel\(([\w$]+),([\w$]+)\)\{(?:[^{}]*?;)?let [\w$]+=await '
-                    r'this\.writeUserSettingsAndPush\(\2,'
-                    r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
-                ),
-                lambda m: f'{m.group(1)},!0)',
-                re.compile(
-                    r'async setModel\(([\w$]+),([\w$]+)\)\{(?:[^{}]*?;)?let [\w$]+=await '
-                    r'this\.writeUserSettingsAndPush\(\1,'
-                    r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
-                ),
-            ),
-        ],
+        # (`[^{}]*?;` skips the brace-free malformed-request guard.)
+        "find": re.compile(
+            r'(async setModel\(([\w$]+),([\w$]+)\)\{[^{}]*?;let [\w$]+=await '
+            r'this\.writeUserSettingsAndPush\(\2,'
+            r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
+        ),
+        "replace": lambda m: f'{m.group(1)},!0)',
+        "already": re.compile(
+            r'async setModel\(([\w$]+),([\w$]+)\)\{[^{}]*?;let [\w$]+=await '
+            r'this\.writeUserSettingsAndPush\(\1,'
+            r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
+        ),
     },
     {
         "name": "5a context-usage pie: show below 50% used",
         "target": "webview/index.js",
-        # Usage component body (2.1.220 .. 2.1.247, only identifiers differ):
-        #   let q=J>0?Math.min($/J*100,100):0,z=MV1!==null?MV1:q,U=100-z;
-        #   if(MV1===null){if(J===0)return null;if(U>=50)return null}
-        #   return E("div",{className:lW.usageContainer,...
-        # J = usable context window, U = % remaining. Drop only the U>=50
+        # Usage wrapper component:
+        #   let Y=J>0?Math.min($/J*100,100):0,Q=cN1!==null?cN1:Y,z=100-Q;
+        #   if(cN1===null){if(J===0)return null;if(z>=50)return null}
+        #   return F(AH5,{percentageUsed:Q,onCompact:Z,...
+        # J = usable context window, z = % remaining. Drop only the z>=50
         # early return; keep the J===0 guard (window size unknown yet).
-        # 2.1.274 split the component: the gate now sits in a wrapper that
-        # returns the inner component instead of the div:
-        #   if(DF1===null){if(J===0)return null;if(G>=50)return null}
-        #   return F(N45,{percentageUsed:Q,onCompact:Z,...
         "find": re.compile(
             r'(if\([\w$]+===0\)return null);if\([\w$]+>=50\)return null'
-            r'(\}return [\w$]+\((?:"div",\{className:[\w$]+\.usageContainer'
-            r'|[\w$]+,\{percentageUsed:))'
+            r'(\}return [\w$]+\([\w$]+,\{percentageUsed:)'
         ),
         "replace": lambda m: f"{m.group(1)}{m.group(2)}",
         "already": re.compile(
             r'if\([\w$]+===0\)return null'
-            r'\}return [\w$]+\((?:"div",\{className:[\w$]+\.usageContainer'
-            r'|[\w$]+,\{percentageUsed:)'
+            r'\}return [\w$]+\([\w$]+,\{percentageUsed:'
         ),
     },
     {
@@ -393,7 +340,7 @@ PATCHES = [
         # dialog module (`.questionsContainer_<hash>`, `.option_<hash>`,
         # `.optionLabel_<hash>` ...) is not on it. Append one rule right
         # after the module's own questionsContainer rule, reusing its hash.
-        # (`(?<!>)`: 2.1.286 adds `.withPreview_<h>>.questionsContainer_<h>{...}`
+        # (`(?<!>)` skips the `.withPreview_<h>>.questionsContainer_<h>{...}`
         # layout rules; only the module's standalone rule gets the companion.)
         "find": re.compile(
             r'((?<!>)\.questionsContainer_([\w-]+)\{(?!user-select:text\})[^{}]*\})'
@@ -410,65 +357,40 @@ PATCHES = [
     {
         "name": "6b AskUserQuestion prompt: drag-select does not click the option",
         "target": "webview/index.js",
-        # Option rows (2.1.220 .. 2.1.260, identifiers differ):
-        #   tabIndex:0,role:O.multiSelect?"checkbox":"radio","aria-checked":R(L.label),
-        #   onClick:()=>N(O.question,L.label),onKeyDown:...
-        # and the trailing "Other" row with `R("Other")` / `N(O.question,"Other")`.
-        # A mouse drag that starts and ends inside the row fires `click` on
-        # it, so with 6a a text selection would toggle the option; skip the
-        # handler while a non-empty selection exists (a plain click always
-        # collapses the selection on mousedown first, so it still works).
-        #
-        # 2.1.286 moved the row into one shared component (also used, without
+        # Every option row is one shared component (also used, without
         # `onSelect`, for the read-only review of answered questions):
         #   function am({multiSelect:$,...,onSelect:q,...}){let B=q===void 0;
         #     return R("div",{...,tabIndex:B?void 0:0,role:$?"checkbox":"radio",
         #       "aria-checked":X,"aria-disabled":B?!0:void 0,"aria-describedby":G,
         #       onClick:q,onMouseEnter:U,...,onKeyDown:q&&((K)=>{...q()}),...
-        # Callers pass `onSelect:()=>f(p.question,label)` (no event argument),
-        # so the guard wraps `q` once, in the component.
-        "alts": [
-            (
-                re.compile(
-                    r'(tabIndex:0,role:([\w$]+)\.multiSelect\?"checkbox":"radio",'
-                    r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:)'
-                    r'\(\)=>([\w$]+\(\2\.question,(?:[\w$]+\.label|"Other")\)),'
-                ),
-                lambda m: (
-                    f'{m.group(1)}()=>{{if(window.getSelection()?.toString())return;'
-                    f'{m.group(3)}}},'
-                ),
-                re.compile(
-                    r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:\(\)=>'
-                    r'\{if\(window\.getSelection\(\)\?\.toString\(\)\)return;'
-                ),
-            ),
-            (
-                re.compile(
-                    r'(role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
-                    r'"aria-disabled":[\w$]+\?!0:void 0,(?:"aria-describedby":[\w$]+,)?'
-                    r'onClick:)([\w$]+)(?=,onMouseEnter:)'
-                ),
-                lambda m: (
-                    f'{m.group(1)}{m.group(2)}&&(()=>{{'
-                    f'if(window.getSelection()?.toString())return;{m.group(2)}()}})'
-                ),
-                re.compile(
-                    r'role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
-                    r'"aria-disabled":[\w$]+\?!0:void 0,(?:"aria-describedby":[\w$]+,)?'
-                    r'onClick:([\w$]+)&&\(\(\)=>\{'
-                    r'if\(window\.getSelection\(\)\?\.toString\(\)\)return;\1\(\)\}\)'
-                ),
-            ),
-        ],
+        # A mouse drag that starts and ends inside the row fires `click` on
+        # it, so with 6a a text selection would toggle the option; skip the
+        # handler while a non-empty selection exists (a plain click always
+        # collapses the selection on mousedown first, so it still works).
+        # Callers pass `onSelect:()=>f(p.question,label)` (no event argument).
+        "find": re.compile(
+            r'(role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
+            r'"aria-disabled":[\w$]+\?!0:void 0,"aria-describedby":[\w$]+,'
+            r'onClick:)([\w$]+)(?=,onMouseEnter:)'
+        ),
+        "replace": lambda m: (
+            f'{m.group(1)}{m.group(2)}&&(()=>{{'
+            f'if(window.getSelection()?.toString())return;{m.group(2)}()}})'
+        ),
+        "already": re.compile(
+            r'role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
+            r'"aria-disabled":[\w$]+\?!0:void 0,"aria-describedby":[\w$]+,'
+            r'onClick:([\w$]+)&&\(\(\)=>\{'
+            r'if\(window\.getSelection\(\)\?\.toString\(\)\)return;\1\(\)\}\)'
+        ),
     },
     {
         "name": "9a peer (cross-session) messages do not start a new turn",
         "target": "webview/index.js",
-        # Turn-start predicate (2.1.260):
-        #   function Ox($){if($?.type!=="user")return!1;
+        # Turn-start predicate:
+        #   function Ju($){if($?.type!=="user")return!1;
         #     if($.isEmpty||$.parentToolUseId||$.isSynthetic)return!1;
-        #     ... has a text block -> !0 }
+        #     if($.foldedIntoTurn)return!1; ... has a text block -> !0 }
         # Used by every turn builder (plain list, focus view, focus folds), so
         # one early `return!1` for origin.kind==="peer" folds cross-session
         # messages into the current turn everywhere. `origin` is copied from
@@ -490,17 +412,15 @@ PATCHES = [
     {
         "name": "9b peer (cross-session) messages never become the sticky header",
         "target": "webview/index.js",
-        # User-message component (2.1.260):
-        #   function({session:J,message:Z,...}){let V=H1(null),H=[...Z.content].reverse(),
-        #     B=H.map((R)=>xz(R.content)),W="";for(...){...}
-        #     let K=B.find((R)=>R?.type==="ideDiagnostics"),A=B.some((R)=>R?.type==="text"),
-        #     j=!K&&A,P=q$0(j),...
-        # 2.1.278 adds a `held` prop and a second text test:
-        #     P=K.some(...)||U41(Z.content),j=!H&&!M&&P,w=hG0(j),...
-        # 2.1.286 appends a read-only term: O=!U&&!M&&N&&!w,_=yK0(O),...
-        # so any `&&` chain of optionally negated identifiers is accepted (the
-        # `,p=fn(j),` tail pins the end of the chain).
-        #   ... className:`${a0.message} ${w} ${j?a0.stickyHeader:""} ...`
+        # User-message component:
+        #   function({session:J,message:Z,...,held:U=!1,...}){let W=s(null),
+        #     B=[...Z.content].reverse(),...,j=B.map(...),...
+        #     M=j.find((p)=>p?.type==="ideDiagnostics"),
+        #     N=j.some((p)=>p?.type==="text")||I91(Z.content),w=V&&hh1(Z),
+        #     O=!U&&!M&&N&&!w,_=yK0(O),...
+        #   ... className:`${v0.message} ${L} ${O?v0.stickyHeader:""} ...`
+        # (written as `j` below; the regex takes any `&&` chain of optionally
+        # negated identifiers, pinned by the `,p=fn(j),` tail.)
         # `j` = "this message is the turn header" (sticky class, click-to-
         # scroll handlers, screen-reader heading). A peer message folded into
         # a turn by 9a must not stick over that turn's real header.
@@ -525,18 +445,6 @@ PATCHES = [
         # createPanel(sessionId, prompt, viewColumn, ...) picks the column
         # when the caller passes none (sidebar "New session",
         # claude-vscode.editor.open / window.open):
-        #   K=B4.ViewColumn.Beside;
-        #   let V=sp$();                         // a tab group holding ONLY Claude panels
-        #   if(V)K=V.viewColumn;
-        #   else K=this.findUnusedColumn(),W=!0  // <- first column without any tab = SPLIT
-        # (2.1.220 inlines the group search instead of sp$(); same tail.
-        #  2.1.274: `else G=this.findUnusedColumn(),W=G!==H4.ViewColumn.Beside}`
-        #  -- the flag is derived from the result instead of a literal !0.)
-        # The Claude-only-group preference is kept; only the split fallback
-        # becomes ViewColumn.Active (the group you are in), startedInNewColumn
-        # = false. findUnusedColumn() has no other caller.
-        #
-        # 2.1.282+ dropped findUnusedColumn(). The column is now
         #   let q=k1.window.tabGroups.all.map(BC),
         #       H=BH1(q)??UH1(q,[...this.panelComms.keys()].flatMap(...));
         #                    // a group that already holds Claude tabs (active one
@@ -544,40 +452,26 @@ PATCHES = [
         #   if(!H){H=await this.startClaudeGroup();   // <- newGroupRight/Below = SPLIT
         #          let Z=$!==void 0?this.sessionPanels.get($):void 0; ...}
         #   K=H?.viewColumn??k1.ViewColumn.Active,G=H?.startsClaudeGroup??!1
-        # so a split only happens when no group holds a Claude tab yet. Dropping
+        # so a split happens when no group holds a Claude tab yet. Dropping
         # the startClaudeGroup() call leaves H undefined -> ViewColumn.Active,
         # startedInNewColumn false (the active group is not locked either).
         # startClaudeGroup() has no other caller.
-        "alts": [
-            (
-                re.compile(
-                    r'(?P<v>[\w$]+)=(?P<ns>[\w$]+)\.ViewColumn\.Beside;(?P<mid>let [\w$]+=.{0,400}?)'
-                    r'else (?P=v)=this\.findUnusedColumn\(\),(?P<w>[\w$]+)='
-                    r'(?:!0|(?P=v)!==(?P=ns)\.ViewColumn\.Beside)\}'
-                ),
-                lambda m: (
-                    f'{m.group("v")}={m.group("ns")}.ViewColumn.Beside;{m.group("mid")}'
-                    f'else {m.group("v")}={m.group("ns")}.ViewColumn.Active,{m.group("w")}=!1}}'
-                ),
-                re.compile(
-                    r'([\w$]+)=([\w$]+)\.ViewColumn\.Beside;let [\w$]+=.{0,400}?'
-                    r'else \1=\2\.ViewColumn\.Active,[\w$]+=!1\}'
-                ),
-            ),
-            (
-                re.compile(
-                    r'(if\(!(?P<h>[\w$]+)\)\{(?P=h)=)await this\.startClaudeGroup\(\)'
-                    r'(?P<tail>;let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\()'
-                ),
-                lambda m: f'{m.group(1)}void 0{m.group("tail")}',
-                re.compile(
-                    r'if\(!([\w$]+)\)\{\1=void 0'
-                    r';let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\('
-                ),
-            ),
-        ],
+        "find": re.compile(
+            r'(if\(!(?P<h>[\w$]+)\)\{(?P=h)=)await this\.startClaudeGroup\(\)'
+            r'(?P<tail>;let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\()'
+        ),
+        "replace": lambda m: f'{m.group(1)}void 0{m.group("tail")}',
+        "already": re.compile(
+            r'if\(!([\w$]+)\)\{\1=void 0'
+            r';let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\('
+        ),
     },
 ]
+
+# Oldest extension build these regexes are written for. Older installs are
+# skipped (whatever was patched into them earlier stays in place).
+MIN_VERSION = (2, 1, 286)
+_VERSION_RE = re.compile(r"anthropic\.claude-code-(\d+)\.(\d+)\.(\d+)")
 
 EXT_GLOBS = [
     "~/.cursor-server/extensions",
@@ -588,24 +482,28 @@ EXT_GLOBS = [
 ]
 
 
-def find_bundles(target: str):
-    bundles = []
+def find_extension_dirs():
+    """-> (supported, skipped): installed extension directories at or above /
+    below MIN_VERSION (a directory whose version cannot be parsed is tried)."""
+    supported, skipped, seen = [], [], set()
     for base in EXT_GLOBS:
         root = Path(base).expanduser()
         if not root.is_dir():
             continue
-        for d in root.glob("anthropic.claude-code-*"):
-            js = d / target
-            if js.is_file():
-                bundles.append(js)
-    # de-dup (some setups symlink), keep stable order
-    seen, uniq = set(), []
-    for js in sorted(bundles):
-        rp = js.resolve()
-        if rp not in seen:
+        for d in sorted(root.glob("anthropic.claude-code-*")):
+            rp = d.resolve()  # de-dup (some setups symlink)
+            if not d.is_dir() or rp in seen:
+                continue
             seen.add(rp)
-            uniq.append(js)
-    return uniq
+            m = _VERSION_RE.match(d.name)
+            too_old = m is not None and tuple(map(int, m.groups())) < MIN_VERSION
+            (skipped if too_old else supported).append(d)
+    return supported, skipped
+
+
+def find_bundles(target: str):
+    supported, _skipped = find_extension_dirs()
+    return [d / target for d in supported if (d / target).is_file()]
 
 
 def patch_file(js: Path, patches) -> dict:
@@ -614,20 +512,15 @@ def patch_file(js: Path, patches) -> dict:
     new = text
     changed = False
     for p in patches:
-        alts = p.get("alts") or [(p["find"], p["replace"], p["already"])]
-        status = None
-        for find, replace, _already in alts:
-            patched, n = find.subn(replace, new)
-            if n > 0:
-                new = patched
-                changed = True
-                status = f"patched ({n})"
-                break
-        if status is None:
-            if any(already.search(new) for _f, _r, already in alts):
-                status = "already patched"
-            else:
-                status = "NOT FOUND (verify manually)"
+        patched, n = p["find"].subn(p["replace"], new)
+        if n > 0:
+            new = patched
+            changed = True
+            status = f"patched ({n})"
+        elif p["already"].search(new):
+            status = "already patched"
+        else:
+            status = "NOT FOUND (verify manually)"
         report["results"].append((p["name"], status))
 
     if changed:
@@ -642,20 +535,22 @@ def patch_file(js: Path, patches) -> dict:
 
 
 def main():
+    supported, skipped = find_extension_dirs()
+    min_version = ".".join(map(str, MIN_VERSION))
+    for d in skipped:
+        print(f"skipped (older than {min_version}): {d}")
+    if not supported:
+        print(f"No Claude Code extension >= {min_version} found.", file=sys.stderr)
+        print("Searched:", ", ".join(EXT_GLOBS), file=sys.stderr)
+        return 1
+
     by_target = {}
     for p in PATCHES:
         by_target.setdefault(p["target"], []).append(p)
 
     any_notfound = False
-    any_found = False
     for target, patches in by_target.items():
-        bundles = find_bundles(target)
-        if not bundles:
-            print(f"No Claude Code extension '{target}' bundles found.", file=sys.stderr)
-            print("Searched:", ", ".join(EXT_GLOBS), file=sys.stderr)
-            continue
-        any_found = True
-        for js in bundles:
+        for js in find_bundles(target):
             rep = patch_file(js, patches)
             print(f"\n{rep['file']}")
             for name, status in rep["results"]:
@@ -666,8 +561,6 @@ def main():
             if rep["wrote"]:
                 print(f"  -> written (backup: {js.with_name(js.name + '.prepatch-bak')})")
 
-    if not any_found:
-        return 1
     print(
         "\nReload the IDE window (Cmd/Ctrl+Shift+P -> 'Reload Window') "
         "for changes to take effect."

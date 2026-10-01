@@ -27,15 +27,15 @@ import patch as skill_patch  # noqa: E402  (find_bundles, EXT_GLOBS)
 
 def _send_user_file_ctx(text):
     """Resolve the minified names patch 7c needs from the tool-renderer base
-    class:  class z2{hidden=!1;header($,J){return D(L1,{children:D("span",
-    {className:K0.toolNameText,children:this.name})})}body($,J,Z,Y){...
-    return E(L1,{children:[   ->  BASE=z2 JSX=D FRAG=L1 CSS=K0 JSXS=E.
-    2.1.286 added a 5th body() argument (replay / denial metadata), hence the
-    optional trailing parameter."""
+    class:  class o2{hidden=!1;header($,J){return F(B1,{children:F("span",
+    {className:T0.toolNameText,children:this.name})})}body($,J,Z,X,Y){...
+    return R(B1,{children:[   ->  BASE=o2 JSX=F FRAG=B1 CSS=T0 JSXS=R.
+    body(context, input, result, progress, meta): `meta` carries replay /
+    denial metadata; the renderer forwards it to super.body()."""
     m = re.search(
         r'class ([\w$]+)\{hidden=!1;header\(([\w$]+),([\w$]+)\)\{return ([\w$]+)\(([\w$]+),'
         r'\{children:\4\("span",\{className:([\w$]+)\.toolNameText,children:this\.name\}\)\}\)\}'
-        r'body\(([\w$]+),([\w$]+),([\w$]+),([\w$]+)(?:,[\w$]+)?\)\{let [\w$]+=this\.renderInput\(\7,\8\),'
+        r'body\(([\w$]+),([\w$]+),([\w$]+),([\w$]+),[\w$]+\)\{let [\w$]+=this\.renderInput\(\7,\8\),'
         r'[\w$]+=this\.renderOutput\(\7,\9,\8\),[\w$]+=this\.toolDescription\(\8\);'
         r'return ([\w$]+)\(\5,\{children:\[',
         text,
@@ -126,9 +126,9 @@ PATCH_7 = [
         "target": "webview/index.js",
         # Renderers extend the base class (name/header/body/renderInput/
         # renderOutput) and are looked up by tool name in
-        #   function BG($,J){let Z=[new u51,...,new uV1(J.fileOpener),...],
-        #     Y=$==="Task"?"Agent":$,X=Z.find((Q)=>Q.name===Y);if(X)return X;
-        #     ... return new eV1($)}        // generic IN/OUT fallback
+        #   function jQ($,J){let Z=[new MJ1,...,new TM1(J.fileOpener),...],
+        #     X=$==="Task"?"Agent":$,Y=Z.find((Q)=>Q.name===X);if(Y)return Y;
+        #     ... return new o11($)}        // generic IN/OUT fallback
         # Define CcSendUserFileTool right before the registry function and
         # prepend it to the list.
         "context": _send_user_file_ctx,
@@ -147,9 +147,10 @@ PATCH_7 = [
         "name": "8 clicked file links: media/binary files open with vscode.open",
         "target": "extension.js",
         # A markdown link such as [file-653.mp4](/abs/path/file-653.mp4) in an
-        # assistant message goes webview Bj0() -> RC() (path + optional
+        # assistant message goes webview link handler (path + optional
         # :L12-L20) -> fileOpener.open() -> extension openFile(), which ends in
-        #   _$.window.showTextDocument(X).then((z)=>{ ...reveal range... })
+        #   Z1.window.showTextDocument(z,K).then((V)=>{if(J?.searchText){...
+        # (K = `{preview:!1}` for pinned tabs, else undefined).
         # showTextDocument() only knows text documents: for an mp4 / png /
         # pdf it REJECTS ("binary or unsupported encoding") and nothing has a
         # catch, so the click does nothing. Media files (images, video,
@@ -158,29 +159,27 @@ PATCH_7 = [
         # and every other rejection falls back to `vscode.open` as well
         # (VS Code then offers "Open Anyway" for unknown binaries).
         # (Directories were already handled just above via revealInExplorer.)
-        # 2.1.274 passes a second argument (`{preview:!1}` for pinned tabs):
-        #   w$.window.showTextDocument(W,G).then((K)=>{if(Q?.searchText){...
-        # `opt` keeps it (with the comma) on the rewritten call.
+        # `opt` keeps the second argument on the rewritten call.
         "find": re.compile(
             r'(?<![\w$])(?P<ns>[\w$]+)\.window\.showTextDocument\('
-            r'(?P<uri>[\w$]+)(?P<opt>,[\w$]+)?\)\.then\(\((?P<cb>[\w$]+)\)=>\{'
+            r'(?P<uri>[\w$]+),(?P<opt>[\w$]+)\)\.then\(\((?P<cb>[\w$]+)\)=>\{'
             r'(?P<body>if\([\w$]+\?\.searchText\)\{let [\w$]+=(?P=cb)\.document,)'
         ),
         # Rewritten shape:
-        #   if(/\.(png|...|pdf)$/i.test(X.fsPath)){_$.commands.executeCommand("vscode.open",X);return}
-        #   _$.window.showTextDocument(X[,opts]).catch(()=>{_$.commands.executeCommand("vscode.open",X)})
-        #     .then((z)=>{if(!z)return; ...original reveal-range body... })
+        #   if(/\.(png|...|pdf)$/i.test(z.fsPath)){Z1.commands.executeCommand("vscode.open",z);return}
+        #   Z1.window.showTextDocument(z,K).catch(()=>{Z1.commands.executeCommand("vscode.open",z)})
+        #     .then((V)=>{if(!V)return; ...original reveal-range body... })
         "replace": lambda m: (
             f'if(/\\.(png|jpe?g|gif|webp|bmp|ico|avif|svg|mp4|webm|mov|m4v|ogv|mkv|'
             f'mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test({m.group("uri")}.fsPath)){{'
             f'{m.group("ns")}.commands.executeCommand("vscode.open",{m.group("uri")});return}}'
-            f'{m.group("ns")}.window.showTextDocument({m.group("uri")}{m.group("opt") or ""})'
+            f'{m.group("ns")}.window.showTextDocument({m.group("uri")},{m.group("opt")})'
             f'.catch(()=>{{{m.group("ns")}.commands.executeCommand("vscode.open",{m.group("uri")})}})'
             f'.then(({m.group("cb")})=>{{if(!{m.group("cb")})return;{m.group("body")}'
         ),
         "already": re.compile(
             r'\.test\([\w$]+\.fsPath\)\)\{[\w$]+\.commands\.executeCommand\("vscode\.open",[\w$]+\);return\}'
-            r'[\w$]+\.window\.showTextDocument\([\w$]+(?:,[\w$]+)?\)\.catch\('
+            r'[\w$]+\.window\.showTextDocument\([\w$]+,[\w$]+\)\.catch\('
         ),
     },
 ]
@@ -189,22 +188,20 @@ PATCH_7 = [
 def _apply_patch(p, text):
     """One patch on one bundle text -> (new_text, status). Drop-in for the
     inner loop of patch_file(): adds `context` support (replace(match, ctx))."""
-    alts = p.get("alts") or [(p["find"], p["replace"], p["already"])]
-    ctx = None
+    replace = p["replace"]
     if "context" in p:
         ctx = p["context"](text)
-        if ctx is None and not any(a[2].search(text) for a in alts):
+        if ctx is None:
+            if p["already"].search(text):
+                return text, "already patched"
             return text, "NOT FOUND (context anchors; verify manually)"
-    for find, replace, _already in alts:
-        if ctx is not None and callable(replace):
-            def rep(m, _r=replace, _c=ctx):
-                return _r(m, _c)
-        else:
-            rep = replace
-        patched, n = find.subn(rep, text)
-        if n > 0:
-            return patched, f"patched ({n})"
-    if any(already.search(text) for _f, _r, already in alts):
+
+        def replace(m, _r=p["replace"], _c=ctx):
+            return _r(m, _c)
+    patched, n = p["find"].subn(replace, text)
+    if n > 0:
+        return patched, f"patched ({n})"
+    if p["already"].search(text):
         return text, "already patched"
     return text, "NOT FOUND (verify manually)"
 

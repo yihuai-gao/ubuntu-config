@@ -43,10 +43,17 @@ Then **reload the IDE window** (Command Palette → "Reload Window").
 The script finds every installed `anthropic.claude-code-*` extension under
 `~/.cursor-server`, `~/.cursor`, `~/.vscode-server`, `~/.vscode` (and
 insiders), matches each patch by **structure** (regex with backreferences —
-survives minifier renames across versions), backs each file up once to
+survives minifier renames), backs each file up once to
 `*.js.prepatch-bak`, and is **idempotent** (safe to run repeatedly). Output
 per patch: `patched`, `already patched`, or `NOT FOUND` (= the extension
 restructured that code; see "After a plugin update" below).
+
+**Supported builds: `MIN_VERSION` and newer** (currently 2.1.286, set in
+[patch.py](patch.py)). Each patch is written for one code shape — the one
+that build ships; no variants for older builds are kept. Older installs are
+listed as `skipped (older than …)` and left as they are (whatever was
+patched into them earlier stays in place). Both scripts share this filter
+through `find_bundles()`.
 
 ## The patches
 
@@ -71,37 +78,21 @@ are unaffected). The patch kills **only the gate**, keeping the
 `remote_control_auto_enable` check, so auto-enable still strictly follows
 `remoteControlAtStartup` in `~/.claude/settings.json`.
 
-Two code shapes exist; `patch.py` handles both.
-
-**2.1.233+** — the gate lives in a module-level helper that also folds in the
-setting check, and the call site no longer tests the setting separately:
+The gate lives in a module-level helper that also folds in the setting check
+(the call site does not test the setting separately):
 
 ```js
-remoteControlAutoEnableOn(e){return aTe(e)}
-function aTe(e){
+remoteControlAutoEnableOn(e){return zu1(e)}
+function zu1(e){
   if(e.remote_control_auto_enable!==!0) return!1;      // <- your setting (kept)
   return e.remote_control_auto_on_by_default===!1
       || e.ide_rc_auto_enable_gate===!0                // <- GB rollout gate (patched to return!0)
 }
 ```
 
-Here forcing `remoteControlAutoEnableOn` itself to `return!0` would be **wrong**
+Forcing `remoteControlAutoEnableOn` itself to `return!0` would be **wrong**
 — it would auto-connect even with the setting off. Only the second `return` is
 replaced.
-
-**~2.1.203–2.1.23x** — the gate was inline in the method, and the call site
-tested the setting itself:
-
-```js
-remoteControlAutoEnableOn(e){return e.ide_rc_auto_enable_gate===!0}   // -> return!0
-// call site: this.remoteControlAutoEnableOn(g) && g.remote_control_auto_enable && ...
-```
-
-> Version note: builds ~2.1.181–2.1.201 had neither form (patch reports NOT
-> FOUND on those). Cursor pins the extension via OpenVSX and may lag behind the
-> VS Marketplace — if stuck on a pre-2.1.203 build, side-load a newer targeted
-> VSIX from `https://open-vsx.org/api/Anthropic/claude-code/<target>/<version>/file/...`
-> (e.g. `linux-x64`) via Command Palette → "Extensions: Install from VSIX".
 
 Prerequisites if it "doesn't work": `"remoteControlAtStartup": true` in
 `~/.claude/settings.json`, signed in with a claude.ai account (not API key),
@@ -169,12 +160,11 @@ any value the model picker / `claude --model` accepts works):
   the same code path the webview's own `apply_settings {flagsOnly:true}` uses.
   Verified via the CLI control channel that `apply_flag_settings {model}`
   switches the model even when the process was spawned with `--model`.
-  Two handler shapes are handled (`alts`): `return await write(...),{...}`
-  (≤ 2.1.259) and `let J=await write(...);return{...applied:J}` (2.1.260+;
-  from 2.1.274 a brace-free `if(typeof Q!=="object"…)throw Error("set_model:
-  malformed request");` guard precedes the `let`, which the regex skips);
-  the `writeUserSettingsAndPush(channel, settings, flagsOnly, scope)`
-  signature is the same in all of them.
+  The handler is `{if(typeof J!=="object"…)throw Error("set_model: malformed
+  request");let Q=await this.writeUserSettingsAndPush($,{model:…});
+  return{type:"set_model_response",…applied:Q}}`; the patch adds `,!0` as
+  the third argument of
+  `writeUserSettingsAndPush(channel, settings, flagsOnly, scope)`.
 
 Notes:
 - You can still switch models freely inside a session (picker or `/model`);
@@ -192,20 +182,18 @@ context-length readout in the native UI, and unpatched it is **hidden while
 ≥ 50 % of the context is still free**:
 
 ```js
-let q=J>0?Math.min($/J*100,100):0, z=MV1!==null?MV1:q, U=100-z;   // J = usable window, U = % remaining
-if(MV1===null){ if(J===0)return null; if(U>=50)return null }      // <- 5a drops the U>=50 return
+let Y=J>0?Math.min($/J*100,100):0, Q=cN1!==null?cN1:Y, z=100-Q;   // J = usable window, z = % remaining
+if(cN1===null){ if(J===0)return null; if(z>=50)return null }      // <- 5a drops the z>=50 return
+return F(AH5,{percentageUsed:Q,onCompact:Z,…})                    // inner component draws the pie
 ```
 
 Dropping that gate alone is not enough: the pie component only ships three
-fixed SVG arcs, bucketed by `im0(p)` (`<62.5 → 50`, `<87 → 75`, else `99`), so
+fixed SVG arcs, bucketed by percentage (`<62.5 → 50`, `<87 → 75`, else `99`), so
 at 5 % used it would draw a half-filled circle. Hence two pieces:
 
-- **5a** remove `if(U>=50)return null`. The `J===0` guard is kept — before
+- **5a** remove `if(z>=50)return null`. The `J===0` guard is kept — before
   the first `result` message the window size is unknown and 0 % would be a
-  lie, so the pie appears after the first assistant turn. (2.1.274 split the
-  component: the gate lives in a wrapper that ends in
-  `return F(N45,{percentageUsed:Q,…})` instead of the `usageContainer` div;
-  the regex accepts both tails.)
+  lie, so the pie appears after the first assistant turn.
 - **5b** the pie draws a real arc for the actual percentage (`PIE_ARC_FN`
   in [patch.py](patch.py): 20×20 viewBox, r = 5 around (10,10), 12 o'clock
   clockwise — the same geometry as the shipped 50 % path) over an always-drawn
@@ -234,21 +222,20 @@ dialog's CSS module (`questionsContainer_<hash>`, `option_<hash>`,
 
 - **6a** `index.css`: append `.questionsContainer_<hash>{user-select:text}`
   right after the module's own `questionsContainer` rule, reusing the hash
-  it finds there (`hONcXw` in 2.1.220–2.1.286; the regex does not depend on
-  it). Everything inside the prompt (question text, options, descriptions)
-  inherits from that container. Only the standalone rule gets the companion
-  (2.1.286 also has `.withPreview_<h>>.questionsContainer_<h>{…}` layout
-  rules, which the regex skips).
+  it finds there (`hONcXw`; the regex does not depend on it). Everything
+  inside the prompt (question text, options, descriptions) inherits from
+  that container. Only the standalone rule gets the companion (the
+  `.withPreview_<h>>.questionsContainer_<h>{…}` layout rules are skipped).
 - **6b** `index.js`: a mouse drag that starts and ends inside one option row
   still fires that row's `click`, which would toggle the option (and, for
-  single-select, advance to the next question). Both option `onClick`
-  handlers (the mapped options and the trailing "Other" row) get
-  `if(window.getSelection()?.toString())return;` in front. A plain click
-  still works: the browser collapses any selection on mousedown before
-  `click` fires. 2.1.286 moved the row into one shared component
-  (`function am({…,onSelect:q,…})` with `onClick:q`, also used read-only for
-  the review of answered questions); there the guard wraps `q` once:
+  single-select, advance to the next question). Every row (the mapped
+  options and the trailing "Other") is one shared component,
+  `function am({…,onSelect:q,…})` with `onClick:q` (also used read-only,
+  without `onSelect`, for the review of answered questions); the guard wraps
+  `q` there:
   `onClick:q&&(()=>{if(window.getSelection()?.toString())return;q()})`.
+  A plain click still works: the browser collapses any selection on
+  mousedown before `click` fires.
 
 Notes:
 - The tab labels in the navigation bar are `<button>`s and stay
@@ -264,8 +251,8 @@ the text `2 files delivered to user. <path> → file_uuid: …` — nothing to l
 at, nothing to click. Three independent reasons, hence three pieces:
 
 - The webview has **no renderer for the tool** (tool renderers are classes
-  extending a base `z2` — `name` / `header()` / `body(context,input,result,
-  progress)` — looked up by name in a registry function `BG(name,context)`;
+  extending a base `o2` — `name` / `header()` / `body(context,input,result,
+  progress,meta)` — looked up by name in a registry function `jQ(name,context)`;
   unknown names fall back to the generic IN/OUT JSON card).
 - The webview **CSP has no `media-src`** (`default-src 'none'`, only
   `img-src ${cspSource} data:`), so a `<video>`/`<audio>` could not load.
@@ -303,9 +290,8 @@ Notes:
   a very large video downloads fully before it plays.
 - Chunks already in a session re-render after Reload Window, so a file
   sent before patching shows up inline afterwards.
-- 2.1.286 gave the base class's `body()` a fifth argument (replay / denial
-  metadata). The context regex accepts the optional parameter and the
-  renderer forwards it to `super.body()`; on older builds it is `undefined`.
+- `body()`'s fifth argument (`meta`: replay / denial metadata) is forwarded
+  unchanged to `super.body()` on the error path.
 
 ### 8. Clicked file links open in the editor  (`extension.js`)
 
@@ -314,13 +300,12 @@ assistant message does nothing when clicked (text files work). Over
 Remote-SSH a `http://localhost:PORT/…` link to a local http server instead
 opens VS Code's Simple Browser tab, which stays **blank** for an mp4.
 
-Path of a click: webview `a` component → `Bj0(ev, href, fileOpener)` →
-`RC(href)` (accepts absolute / relative paths and anything with an
-extension, plus `:L12-L20` / `#L12` suffixes) → `fileOpener.open()` →
-extension `openFile()`, which ends in
+Path of a click: webview `a` component → link handler (accepts absolute /
+relative paths and anything with an extension, plus `:L12-L20` / `#L12`
+suffixes) → `fileOpener.open()` → extension `openFile()`, which ends in
 
 ```js
-_$.window.showTextDocument(X).then((z)=>{ …reveal range / searchText… })
+Z1.window.showTextDocument(z,K).then((V)=>{ …reveal range / searchText… })   // K = {preview:!1} for pinned tabs
 ```
 
 `showTextDocument()` only knows text documents: for an mp4 / png / pdf it
@@ -328,20 +313,18 @@ _$.window.showTextDocument(X).then((z)=>{ …reveal range / searchText… })
 rejection handler, so the click is swallowed. The patch rewrites that call:
 
 ```js
-if(/\.(png|jpe?g|gif|webp|bmp|ico|avif|svg|mp4|webm|mov|m4v|ogv|mkv|mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test(X.fsPath)){
-  _$.commands.executeCommand("vscode.open",X);return}                  // media -> built-in Media Preview / image / pdf editor
-_$.window.showTextDocument(X).catch(()=>{_$.commands.executeCommand("vscode.open",X)})
-  .then((z)=>{if(!z)return; …original body… })                          // any other rejection -> vscode.open ("Open Anyway")
+if(/\.(png|jpe?g|gif|webp|bmp|ico|avif|svg|mp4|webm|mov|m4v|ogv|mkv|mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test(z.fsPath)){
+  Z1.commands.executeCommand("vscode.open",z);return}                  // media -> built-in Media Preview / image / pdf editor
+Z1.window.showTextDocument(z,K).catch(()=>{Z1.commands.executeCommand("vscode.open",z)})
+  .then((V)=>{if(!V)return; …original body… })                          // any other rejection -> vscode.open ("Open Anyway")
 ```
 
 `vscode.open` is what the `code <path>` CLI does through Remote-SSH: the
 file opens in the connected VS Code window, on the local side.
 
 Notes:
-- 2.1.274 calls `showTextDocument(W,G)` with a second argument (`{preview:!1}`
-  for pinned tabs); the regex accepts an optional second identifier and keeps
-  it on the rewritten call. The media fast path ignores it (media open in
-  preview mode).
+- The second `showTextDocument` argument is kept on the rewritten call; the
+  media fast path ignores it (media open in preview mode).
 - Only **file paths** can be routed this way; a `http://localhost:…` URL
   cannot be mapped back to a file. Link deliverables as absolute paths (and
   send images / videos with SendUserFile) — see memory rule 65.
@@ -356,30 +339,26 @@ Claude session instead of the prompt you typed. Those peer messages arrive as
 plain **user** messages (transcript: `type:"user"`, `isMeta:true`,
 `origin:{kind:"peer",from:…,name:…}`), and the webview copies `origin` onto
 its message objects. A turn starts at every user message that has a text
-block and is neither tool-parented nor synthetic (`Ox(msg)`), so each peer
-message opened a new turn and became its sticky header.
+block and is neither tool-parented nor synthetic (`Ju(msg)`), so a peer
+message can open a new turn and become its sticky header.
 
-- **9a** `Ox(msg)` gets an early `return!1` for `msg.origin?.kind==="peer"`.
+- **9a** `Ju(msg)` gets an early `return!1` for `msg.origin?.kind==="peer"`.
   All three turn builders (plain list, focus view, focus-view folds) call
   it, so peer messages are folded into the turn they interrupt everywhere.
-- **9b** the user-message component computes `j` = "this message is the turn
-  header" (sticky class, click-to-scroll handlers, screen-reader heading);
-  `&&Z.origin?.kind!=="peer"` is appended so a folded peer message cannot
-  stick over the turn's real header. It still renders in place as a normal
-  (non-sticky) user bubble. (≤ 2.1.260 has `j=!K&&A`; 2.1.278 adds a `held`
-  prop, `j=!H&&!M&&P`; 2.1.286 appends a read-only term, `O=!U&&!M&&N&&!w`
-  — the regex accepts any `&&` chain of optionally negated identifiers.)
+- **9b** the user-message component computes `O=!U&&!M&&N&&!w` = "this
+  message is the turn header" (sticky class, click-to-scroll handlers,
+  screen-reader heading); `&&Z.origin?.kind!=="peer"` is appended so a
+  folded peer message cannot stick over the turn's real header. It still
+  renders in place as a normal (non-sticky) row.
 
 Notes:
 - Keyed on the `origin` metadata, not on the `<cross-session-message>` text,
   so a prompt of yours that merely quotes such a block is unaffected.
 - Task notifications (`origin.kind==="task-notification"`) already have
   their own handling and are untouched.
-- Cursor's 2.1.201 / 2.1.207 builds predate peer messaging and report NOT
-  FOUND for both pieces; that is expected.
-- 2.1.286 also classifies a well-formed `<cross-session-message>` text block
-  as its own `peerMessage` content type (not `text`), so such a message no
-  longer starts a turn by itself; the patch stays as the `origin`-keyed
+- The webview itself classifies a well-formed `<cross-session-message>` text
+  block as a `peerMessage` content type (not `text`), which already keeps
+  such a message from starting a turn; the patch is the `origin`-keyed
   backstop for blocks that parser rejects.
 
 ### 10. "New session" opens in the active editor group, never a split  (`extension.js`)
@@ -391,25 +370,6 @@ column is chosen in `createPanel(sessionId, prompt, viewColumn, …)` when the
 caller passes no column:
 
 ```js
-K=B4.ViewColumn.Beside;
-let V=sp$();                          // a tab group whose tabs are ALL Claude panels
-if(V)K=V.viewColumn;                  // reuse it
-else K=this.findUnusedColumn(),W=!0   // <- first column with no tab at all = SPLIT
-```
-
-(2.1.220 inlines the group search instead of `sp$()`; the tail is identical.
-2.1.274 derives the flag from the result instead of a literal:
-`else G=this.findUnusedColumn(),W=G!==H4.ViewColumn.Beside}` — the regex
-accepts both tails and the replacement is the same.)
-As soon as a Claude tab shares its group with a file tab there is no
-"Claude-only" group, so every new session split the editor. The patch keeps
-the Claude-only-group preference and replaces only the fallback:
-`findUnusedColumn()` → `ViewColumn.Active` (the group you are in),
-`startedInNewColumn` → false. `findUnusedColumn()` has no other caller.
-
-**2.1.282+** dropped `findUnusedColumn()`; the split moved into a helper:
-
-```js
 let q=k1.window.tabGroups.all.map(BC),
     H=BH1(q)??UH1(q,[…live panel columns…]);   // a group that already holds Claude tabs
                                                 // (active one first), a lone empty group,
@@ -418,11 +378,12 @@ if(!H){H=await this.startClaudeGroup(); …}      // <- newGroupRight / newGroup
 K=H?.viewColumn??k1.ViewColumn.Active,G=H?.startsClaudeGroup??!1
 ```
 
-Upstream now reuses any group that holds a Claude tab, so the split is left
-only for the first Claude tab in a window. The patch replaces the
+A group that already holds a Claude tab is reused, so the split happens for
+the first Claude tab in a window. The patch replaces the
 `await this.startClaudeGroup()` call with `void 0`, which falls through to
-`ViewColumn.Active` and `startedInNewColumn` false (so the group you are in
-is not locked either). `startClaudeGroup()` has no other caller.
+`ViewColumn.Active` (the group you are in) and `startedInNewColumn` false
+(so that group is not locked either). `startClaudeGroup()` has no other
+caller.
 
 Notes:
 - The primary-editor command and "reopen last closed session" pass an
@@ -435,25 +396,26 @@ Notes:
 Just run the script again — the new version's bundles get patched. If a patch
 reports `NOT FOUND`, the extension restructured that code: grep the target
 bundle for the anchor strings (`key==="Tab"` + `shiftKey`;
-`ide_rc_auto_enable_gate` / `remoteControlAutoEnableOn`;
-`getInitialPermissionMode`; `,model:` next to `allowDangerouslySkipPermissions:`
-in `spawnClaude`, `getModelSetting`, `async setModel(`; `% context used` /
-`.usageContainer` and `{percentage:` + `style:{display:"block"}` for the pie;
-`.questionsContainer_` in `index.css` and `"aria-checked":` + `onClick:()=>`
-in `index.js` for the question prompt; `img-src ${` + `cspSource`,
+`ide_rc_auto_enable_gate`; `getInitialPermissionMode`; `,model:` next to
+`allowDangerouslySkipPermissions:` in `spawnClaude`, `getModelSetting`,
+`async setModel(`; `>=50)return null` + `{percentageUsed:` and `{percentage:`
++ `style:{display:"block"}` for the pie; `.questionsContainer_` in
+`index.css` and `"aria-checked":` + `"aria-disabled":` + `onClick:` in
+`index.js` for the question prompt; `img-src ${` + `cspSource`,
 `localResourceRoots:[` and `window.showTextDocument(` … `.then((` +
-`?.searchText` in `extension.js`, `{hidden=!1;header(` (renderer base
-class) and `.fileOpener),` inside a `let X=[new …]` registry list in
-`index.js` for the sent-file / link patches; `.isEmpty||` … `.isSynthetic)return!1;`
-(turn-start predicate) and `.some((` … `?.type==="text"),` followed by
-`=!` … `&&` (the user-message `j` flag) for the latest-prompt strip;
-`this.findUnusedColumn(),` after a `.ViewColumn.Beside;` — or, 2.1.282+,
-`await this.startClaudeGroup()` — for the new-session column),
-locate the new form, and update that patch's
-`find`/`already` regexes in [patch.py](patch.py) — or add it as another
-variant in that patch's `alts` list, so older builds keep working. If an anchor string is gone
-entirely, Anthropic may have shipped the behavior properly (e.g. rollout
-complete) — test unpatched before re-adding.
+`?.searchText` in `extension.js`, `{hidden=!1;header(` (renderer base class)
+and `.fileOpener),` inside a `let X=[new …]` registry list in `index.js` for
+the sent-file / link patches; `.isEmpty||` … `.isSynthetic)return!1;`
+(turn-start predicate) and `.some((` … `?.type==="text")` followed by a
+`=!` … `&&` chain (the user-message sticky flag) for the latest-prompt
+strip; `await this.startClaudeGroup()` for the new-session column), locate
+the new form, **replace** that patch's `find` / `already` regexes (and the
+shape shown in this file) with it, and bump `MIN_VERSION` in
+[patch.py](patch.py) to that build. Old shapes are not kept as variants.
+Verify with the pristine `*.prepatch-bak` copy: every patch must report
+`patched` on it and `already patched` on the result. If an anchor string is
+gone entirely, Anthropic may have shipped the behavior properly (e.g.
+rollout complete) — test unpatched before re-adding.
 
 ## Rollback
 
