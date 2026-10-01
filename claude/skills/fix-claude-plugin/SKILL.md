@@ -17,7 +17,8 @@ with SendUserFile (images / videos / audio) render inline, clicked file
 links open in the VS Code editor (Media Preview for mp4 / png / pdf), and the
 pinned "latest prompt" strip at the top of the conversation always shows
 **your** latest prompt (never a cross-session message from another Claude
-session).
+session), and the Session Manager's **New session** button opens the new
+tab in the editor group you are in instead of splitting a new column beside it.
 
 Supersedes and merges the retired `fix-keyboard-shortcuts` and
 `fix-remote-control-startup` skills.
@@ -25,7 +26,7 @@ Supersedes and merges the retired `fix-keyboard-shortcuts` and
 ## How to run
 
 ```bash
-python3 ~/.claude/skills/fix-claude-plugin/patch.py                   # patches 1-6, 9
+python3 ~/.claude/skills/fix-claude-plugin/patch.py                   # patches 1-6, 9, 10
 python3 ~/.claude/skills/fix-claude-plugin/patch7_send_user_file.py   # patches 7-8 (--check = dry run)
 ```
 
@@ -169,9 +170,11 @@ any value the model picker / `claude --model` accepts works):
   Verified via the CLI control channel that `apply_flag_settings {model}`
   switches the model even when the process was spawned with `--model`.
   Two handler shapes are handled (`alts`): `return await write(...),{...}`
-  (≤ 2.1.259) and `let J=await write(...);return{...applied:J}` (2.1.260+);
+  (≤ 2.1.259) and `let J=await write(...);return{...applied:J}` (2.1.260+;
+  from 2.1.274 a brace-free `if(typeof Q!=="object"…)throw Error("set_model:
+  malformed request");` guard precedes the `let`, which the regex skips);
   the `writeUserSettingsAndPush(channel, settings, flagsOnly, scope)`
-  signature is the same in both.
+  signature is the same in all of them.
 
 Notes:
 - You can still switch models freely inside a session (picker or `/model`);
@@ -199,7 +202,10 @@ at 5 % used it would draw a half-filled circle. Hence two pieces:
 
 - **5a** remove `if(U>=50)return null`. The `J===0` guard is kept — before
   the first `result` message the window size is unknown and 0 % would be a
-  lie, so the pie appears after the first assistant turn.
+  lie, so the pie appears after the first assistant turn. (2.1.274 split the
+  component: the gate lives in a wrapper that ends in
+  `return F(N45,{percentageUsed:Q,…})` instead of the `usageContainer` div;
+  the regex accepts both tails.)
 - **5b** the pie draws a real arc for the actual percentage (`PIE_ARC_FN`
   in [patch.py](patch.py): 20×20 viewBox, r = 5 around (10,10), 12 o'clock
   clockwise — the same geometry as the shipped 50 % path) over an always-drawn
@@ -228,16 +234,21 @@ dialog's CSS module (`questionsContainer_<hash>`, `option_<hash>`,
 
 - **6a** `index.css`: append `.questionsContainer_<hash>{user-select:text}`
   right after the module's own `questionsContainer` rule, reusing the hash
-  it finds there (`hONcXw` in 2.1.220–2.1.260; the regex does not depend on
+  it finds there (`hONcXw` in 2.1.220–2.1.286; the regex does not depend on
   it). Everything inside the prompt (question text, options, descriptions)
-  inherits from that container.
+  inherits from that container. Only the standalone rule gets the companion
+  (2.1.286 also has `.withPreview_<h>>.questionsContainer_<h>{…}` layout
+  rules, which the regex skips).
 - **6b** `index.js`: a mouse drag that starts and ends inside one option row
   still fires that row's `click`, which would toggle the option (and, for
   single-select, advance to the next question). Both option `onClick`
   handlers (the mapped options and the trailing "Other" row) get
   `if(window.getSelection()?.toString())return;` in front. A plain click
   still works: the browser collapses any selection on mousedown before
-  `click` fires.
+  `click` fires. 2.1.286 moved the row into one shared component
+  (`function am({…,onSelect:q,…})` with `onClick:q`, also used read-only for
+  the review of answered questions); there the guard wraps `q` once:
+  `onClick:q&&(()=>{if(window.getSelection()?.toString())return;q()})`.
 
 Notes:
 - The tab labels in the navigation bar are `<button>`s and stay
@@ -292,6 +303,9 @@ Notes:
   a very large video downloads fully before it plays.
 - Chunks already in a session re-render after Reload Window, so a file
   sent before patching shows up inline afterwards.
+- 2.1.286 gave the base class's `body()` a fifth argument (replay / denial
+  metadata). The context regex accepts the optional parameter and the
+  renderer forwards it to `super.body()`; on older builds it is `undefined`.
 
 ### 8. Clicked file links open in the editor  (`extension.js`)
 
@@ -324,6 +338,10 @@ _$.window.showTextDocument(X).catch(()=>{_$.commands.executeCommand("vscode.open
 file opens in the connected VS Code window, on the local side.
 
 Notes:
+- 2.1.274 calls `showTextDocument(W,G)` with a second argument (`{preview:!1}`
+  for pinned tabs); the regex accepts an optional second identifier and keeps
+  it on the rewritten call. The media fast path ignores it (media open in
+  preview mode).
 - Only **file paths** can be routed this way; a `http://localhost:…` URL
   cannot be mapped back to a file. Link deliverables as absolute paths (and
   send images / videos with SendUserFile) — see memory rule 65.
@@ -348,15 +366,69 @@ message opened a new turn and became its sticky header.
   header" (sticky class, click-to-scroll handlers, screen-reader heading);
   `&&Z.origin?.kind!=="peer"` is appended so a folded peer message cannot
   stick over the turn's real header. It still renders in place as a normal
-  (non-sticky) user bubble.
+  (non-sticky) user bubble. (≤ 2.1.260 has `j=!K&&A`; 2.1.278 adds a `held`
+  prop, `j=!H&&!M&&P`; 2.1.286 appends a read-only term, `O=!U&&!M&&N&&!w`
+  — the regex accepts any `&&` chain of optionally negated identifiers.)
 
 Notes:
 - Keyed on the `origin` metadata, not on the `<cross-session-message>` text,
   so a prompt of yours that merely quotes such a block is unaffected.
 - Task notifications (`origin.kind==="task-notification"`) already have
   their own handling and are untouched.
-- Cursor's 2.1.220 build predates peer messaging and reports NOT FOUND for
-  both pieces; that is expected.
+- Cursor's 2.1.201 / 2.1.207 builds predate peer messaging and report NOT
+  FOUND for both pieces; that is expected.
+- 2.1.286 also classifies a well-formed `<cross-session-message>` text block
+  as its own `peerMessage` content type (not `text`), so such a message no
+  longer starts a turn by itself; the patch stays as the `origin`-keyed
+  backstop for blocks that parser rejects.
+
+### 10. "New session" opens in the active editor group, never a split  (`extension.js`)
+
+Symptom: pressing **+ New session** in the Session Manager sidebar (and the
+`claude-vscode.editor.open` / `claude-vscode.window.open` commands) opens
+the new Claude tab in a *new* editor column beside the current one. The
+column is chosen in `createPanel(sessionId, prompt, viewColumn, …)` when the
+caller passes no column:
+
+```js
+K=B4.ViewColumn.Beside;
+let V=sp$();                          // a tab group whose tabs are ALL Claude panels
+if(V)K=V.viewColumn;                  // reuse it
+else K=this.findUnusedColumn(),W=!0   // <- first column with no tab at all = SPLIT
+```
+
+(2.1.220 inlines the group search instead of `sp$()`; the tail is identical.
+2.1.274 derives the flag from the result instead of a literal:
+`else G=this.findUnusedColumn(),W=G!==H4.ViewColumn.Beside}` — the regex
+accepts both tails and the replacement is the same.)
+As soon as a Claude tab shares its group with a file tab there is no
+"Claude-only" group, so every new session split the editor. The patch keeps
+the Claude-only-group preference and replaces only the fallback:
+`findUnusedColumn()` → `ViewColumn.Active` (the group you are in),
+`startedInNewColumn` → false. `findUnusedColumn()` has no other caller.
+
+**2.1.282+** dropped `findUnusedColumn()`; the split moved into a helper:
+
+```js
+let q=k1.window.tabGroups.all.map(BC),
+    H=BH1(q)??UH1(q,[…live panel columns…]);   // a group that already holds Claude tabs
+                                                // (active one first), a lone empty group,
+                                                // or a live Claude panel's column
+if(!H){H=await this.startClaudeGroup(); …}      // <- newGroupRight / newGroupBelow = SPLIT
+K=H?.viewColumn??k1.ViewColumn.Active,G=H?.startsClaudeGroup??!1
+```
+
+Upstream now reuses any group that holds a Claude tab, so the split is left
+only for the first Claude tab in a window. The patch replaces the
+`await this.startClaudeGroup()` call with `void 0`, which falls through to
+`ViewColumn.Active` and `startedInNewColumn` false (so the group you are in
+is not locked either). `startClaudeGroup()` has no other caller.
+
+Notes:
+- The primary-editor command and "reopen last closed session" pass an
+  explicit column and are untouched.
+- Drag the tab to another group if you do want a split; that never
+  triggers this code.
 
 ## After a plugin update
 
@@ -374,7 +446,9 @@ in `index.js` for the question prompt; `img-src ${` + `cspSource`,
 class) and `.fileOpener),` inside a `let X=[new …]` registry list in
 `index.js` for the sent-file / link patches; `.isEmpty||` … `.isSynthetic)return!1;`
 (turn-start predicate) and `.some((` … `?.type==="text"),` followed by
-`=!` … `&&` (the user-message `j` flag) for the latest-prompt strip),
+`=!` … `&&` (the user-message `j` flag) for the latest-prompt strip;
+`this.findUnusedColumn(),` after a `.ViewColumn.Beside;` — or, 2.1.282+,
+`await this.startClaudeGroup()` — for the new-session column),
 locate the new form, and update that patch's
 `find`/`already` regexes in [patch.py](patch.py) — or add it as another
 variant in that patch's `alts` list, so older builds keep working. If an anchor string is gone

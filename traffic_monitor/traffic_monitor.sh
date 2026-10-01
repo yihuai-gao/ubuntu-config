@@ -3,6 +3,7 @@
 #   ./traffic_monitor.sh                 # capture default-route NICs, serve http://127.0.0.1:8787
 #   ./traffic_monitor.sh -i enp6s0 -i wlp7s0 -p 9000
 #   ./traffic_monitor.sh --text          # top-like terminal view instead of the web page
+#   ./traffic_monitor.sh --counters-only  # no sudo: overall interface rates only (no per-process rows)
 #   ./traffic_monitor.sh --help
 # A previous traffic_monitor.py instance (any port) is stopped first, so re-running the
 # script after a code change just replaces the server. Set TM_KEEP_RUNNING=1 to skip that.
@@ -12,7 +13,7 @@ PY="$DIR/traffic_monitor.py"
 PYTHON="${PYTHON:-python3}"
 
 for a in "$@"; do
-  case "$a" in --selftest|-h|--help) exec "$PYTHON" "$PY" "$@" ;; esac
+  case "$a" in --selftest|-h|--help|--counters-only) exec "$PYTHON" "$PY" "$@" ;; esac   # no root needed
 done
 
 if [[ $EUID -ne 0 ]]; then

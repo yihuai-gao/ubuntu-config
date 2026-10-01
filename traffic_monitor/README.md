@@ -11,6 +11,9 @@ container.
 # open http://127.0.0.1:8787
 ~/ubuntu-config/traffic_monitor/traffic_monitor.sh --text     # terminal top-like view
 ~/ubuntu-config/traffic_monitor/traffic_monitor.sh -i all     # every physical NIC, not just default-route ones
+~/ubuntu-config/traffic_monitor/traffic_monitor.sh --counters-only -p 24102   # NO sudo: overall download / upload of every
+#   interface from /proc/net/dev only (same page + /api/state, no per-process rows, no storage mode) -- what the
+#   cam_uva daemon server hosts as a `services:` entry for the watch dashboard's live strip (2026-09-09)
 ~/ubuntu-config/traffic_monitor/traffic_monitor.sh -i enp6s0 -i docker0 -p 9000
 ~/ubuntu-config/traffic_monitor/traffic_monitor.sh -d hdd5 -d hdd6 --storage-interval 1   # storage mode: only these disks, 1 s
 # open http://127.0.0.1:8787/?mode=storage&iface=hdd5   (URL overrides the remembered mode/view)

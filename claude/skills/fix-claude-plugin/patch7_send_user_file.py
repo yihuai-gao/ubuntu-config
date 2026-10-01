@@ -29,11 +29,13 @@ def _send_user_file_ctx(text):
     """Resolve the minified names patch 7c needs from the tool-renderer base
     class:  class z2{hidden=!1;header($,J){return D(L1,{children:D("span",
     {className:K0.toolNameText,children:this.name})})}body($,J,Z,Y){...
-    return E(L1,{children:[   ->  BASE=z2 JSX=D FRAG=L1 CSS=K0 JSXS=E."""
+    return E(L1,{children:[   ->  BASE=z2 JSX=D FRAG=L1 CSS=K0 JSXS=E.
+    2.1.286 added a 5th body() argument (replay / denial metadata), hence the
+    optional trailing parameter."""
     m = re.search(
         r'class ([\w$]+)\{hidden=!1;header\(([\w$]+),([\w$]+)\)\{return ([\w$]+)\(([\w$]+),'
         r'\{children:\4\("span",\{className:([\w$]+)\.toolNameText,children:this\.name\}\)\}\)\}'
-        r'body\(([\w$]+),([\w$]+),([\w$]+),([\w$]+)\)\{let [\w$]+=this\.renderInput\(\7,\8\),'
+        r'body\(([\w$]+),([\w$]+),([\w$]+),([\w$]+)(?:,[\w$]+)?\)\{let [\w$]+=this\.renderInput\(\7,\8\),'
         r'[\w$]+=this\.renderOutput\(\7,\9,\8\),[\w$]+=this\.toolDescription\(\8\);'
         r'return ([\w$]+)\(\5,\{children:\[',
         text,
@@ -73,7 +75,7 @@ SEND_USER_FILE_TOOL_JS = (
     'header(c,i){{var f=Array.isArray(i&&i.files)?i.files:[],n=f.map(function(p){{return String(p).split("/").pop()}}).join(", ");'
     'return {JSXS}({FRAG},{{children:[{JSX}("span",{{className:{CSS}.toolNameText,children:f.length>1?"Sent files":"Sent file"}})," ",'
     '{JSX}("span",{{className:{CSS}.toolNameTextSecondary,children:n}})]}})}}'
-    'body(c,i,r,g){{if(!r)return null;if(r.is_error)return super.body(c,i,r,g);'
+    'body(c,i,r,g,x){{if(!r)return null;if(r.is_error)return super.body(c,i,r,g,x);'
     'var self=this,ps=CcSendUserFileTool.paths(i,r),attach=!!i&&i.display==="attach",'
     'items=ps.map(function(p,k){{var u=CcSendUserFileTool.url(p),kind=attach?"file":CcSendUserFileTool.kind(p),name=p.split("/").pop(),'
     'open=function(ev){{if(ev&&ev.preventDefault)ev.preventDefault();self.opener.open(p)}},el=null;'
@@ -156,25 +158,29 @@ PATCH_7 = [
         # and every other rejection falls back to `vscode.open` as well
         # (VS Code then offers "Open Anyway" for unknown binaries).
         # (Directories were already handled just above via revealInExplorer.)
+        # 2.1.274 passes a second argument (`{preview:!1}` for pinned tabs):
+        #   w$.window.showTextDocument(W,G).then((K)=>{if(Q?.searchText){...
+        # `opt` keeps it (with the comma) on the rewritten call.
         "find": re.compile(
-            r'(?<![\w$])([\w$]+)\.window\.showTextDocument\(([\w$]+)\)\.then\(\(([\w$]+)\)=>\{'
-            r'(if\(([\w$]+)\?\.searchText\)\{let [\w$]+=\3\.document,)'
+            r'(?<![\w$])(?P<ns>[\w$]+)\.window\.showTextDocument\('
+            r'(?P<uri>[\w$]+)(?P<opt>,[\w$]+)?\)\.then\(\((?P<cb>[\w$]+)\)=>\{'
+            r'(?P<body>if\([\w$]+\?\.searchText\)\{let [\w$]+=(?P=cb)\.document,)'
         ),
         # Rewritten shape:
         #   if(/\.(png|...|pdf)$/i.test(X.fsPath)){_$.commands.executeCommand("vscode.open",X);return}
-        #   _$.window.showTextDocument(X).catch(()=>{_$.commands.executeCommand("vscode.open",X)})
+        #   _$.window.showTextDocument(X[,opts]).catch(()=>{_$.commands.executeCommand("vscode.open",X)})
         #     .then((z)=>{if(!z)return; ...original reveal-range body... })
         "replace": lambda m: (
             f'if(/\\.(png|jpe?g|gif|webp|bmp|ico|avif|svg|mp4|webm|mov|m4v|ogv|mkv|'
-            f'mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test({m.group(2)}.fsPath)){{'
-            f'{m.group(1)}.commands.executeCommand("vscode.open",{m.group(2)});return}}'
-            f'{m.group(1)}.window.showTextDocument({m.group(2)})'
-            f'.catch(()=>{{{m.group(1)}.commands.executeCommand("vscode.open",{m.group(2)})}})'
-            f'.then(({m.group(3)})=>{{if(!{m.group(3)})return;{m.group(4)}'
+            f'mp3|wav|ogg|oga|m4a|flac|aac|pdf)$/i.test({m.group("uri")}.fsPath)){{'
+            f'{m.group("ns")}.commands.executeCommand("vscode.open",{m.group("uri")});return}}'
+            f'{m.group("ns")}.window.showTextDocument({m.group("uri")}{m.group("opt") or ""})'
+            f'.catch(()=>{{{m.group("ns")}.commands.executeCommand("vscode.open",{m.group("uri")})}})'
+            f'.then(({m.group("cb")})=>{{if(!{m.group("cb")})return;{m.group("body")}'
         ),
         "already": re.compile(
             r'\.test\([\w$]+\.fsPath\)\)\{[\w$]+\.commands\.executeCommand\("vscode\.open",[\w$]+\);return\}'
-            r'[\w$]+\.window\.showTextDocument\([\w$]+\)\.catch\('
+            r'[\w$]+\.window\.showTextDocument\([\w$]+(?:,[\w$]+)?\)\.catch\('
         ),
     },
 ]

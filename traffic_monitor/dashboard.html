@@ -417,11 +417,14 @@ function render() {
     $('health').innerHTML = `${Math.round(m.util)}<small>%</small>`;
     $('healthsub').textContent = `busiest ${v.name === ALL ? 'of ' + m.disks + ' disks' : 'this second'} · tick ${m.tick_ms} ms · every ${s.interval} s`;
   } else {
-    $('health').innerHTML = m.drops ? `${m.drops}<small>dropped</small>` : 'ok';
-    $('healthsub').textContent = `tick ${m.tick_ms} ms · fd scan ${m.scan_ms} ms · netns ${m.netns}${m.conntrack ? ' · conntrack' : ''}`;
+    $('health').innerHTML = m.counters_only ? 'counters' : (m.drops ? `${m.drops}<small>dropped</small>` : 'ok');
+    $('healthsub').textContent = m.counters_only ? `interface counters only (no root) · tick ${m.tick_ms} ms`
+      : `tick ${m.tick_ms} ms · fd scan ${m.scan_ms} ms · netns ${m.netns}${m.conntrack ? ' · conntrack' : ''}`;
   }
   const b = $('banner');
-  if (m.errors && m.errors.length) { b.hidden = false; b.textContent = 'capture errors: ' + m.errors.join('; '); } else b.hidden = true;
+  if (m.errors && m.errors.length) { b.hidden = false; b.textContent = 'capture errors: ' + m.errors.join('; '); }
+  else if (m.counters_only && !stor) { b.hidden = false; b.textContent = 'counters-only mode (started without root): overall rates from /proc/net/dev, no per-process attribution, no storage mode'; }
+  else b.hidden = true;
 
   // charts
   const h = s.history, keys = [...h.order];

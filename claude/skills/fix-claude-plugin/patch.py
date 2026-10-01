@@ -300,6 +300,8 @@ PATCHES = [
         #                 {model:...}),{type:"set_model_response"}}
         #   >= 2.1.260: async setModel($,Q){let J=await this.writeUserSettingsAndPush($,
         #                 {model:...});return{type:"set_model_response",...J!==void 0&&{applied:J}}}
+        #   >= 2.1.274: same, with a brace-free guard in front of the `let`:
+        #               {if(typeof Q!=="object"||...)throw Error("set_model: malformed request");let J=...
         "alts": [
             (
                 re.compile(
@@ -316,13 +318,13 @@ PATCHES = [
             ),
             (
                 re.compile(
-                    r'(async setModel\(([\w$]+),([\w$]+)\)\{let [\w$]+=await '
+                    r'(async setModel\(([\w$]+),([\w$]+)\)\{(?:[^{}]*?;)?let [\w$]+=await '
                     r'this\.writeUserSettingsAndPush\(\2,'
                     r'\{model:\3\.value==="default"\?null:\3\.value\})\)'
                 ),
                 lambda m: f'{m.group(1)},!0)',
                 re.compile(
-                    r'async setModel\(([\w$]+),([\w$]+)\)\{let [\w$]+=await '
+                    r'async setModel\(([\w$]+),([\w$]+)\)\{(?:[^{}]*?;)?let [\w$]+=await '
                     r'this\.writeUserSettingsAndPush\(\1,'
                     r'\{model:\2\.value==="default"\?null:\2\.value\},!0\)'
                 ),
@@ -338,14 +340,20 @@ PATCHES = [
         #   return E("div",{className:lW.usageContainer,...
         # J = usable context window, U = % remaining. Drop only the U>=50
         # early return; keep the J===0 guard (window size unknown yet).
+        # 2.1.274 split the component: the gate now sits in a wrapper that
+        # returns the inner component instead of the div:
+        #   if(DF1===null){if(J===0)return null;if(G>=50)return null}
+        #   return F(N45,{percentageUsed:Q,onCompact:Z,...
         "find": re.compile(
             r'(if\([\w$]+===0\)return null);if\([\w$]+>=50\)return null'
-            r'(\}return [\w$]+\("div",\{className:[\w$]+\.usageContainer)'
+            r'(\}return [\w$]+\((?:"div",\{className:[\w$]+\.usageContainer'
+            r'|[\w$]+,\{percentageUsed:))'
         ),
         "replace": lambda m: f"{m.group(1)}{m.group(2)}",
         "already": re.compile(
             r'if\([\w$]+===0\)return null'
-            r'\}return [\w$]+\("div",\{className:[\w$]+\.usageContainer'
+            r'\}return [\w$]+\((?:"div",\{className:[\w$]+\.usageContainer'
+            r'|[\w$]+,\{percentageUsed:)'
         ),
     },
     {
@@ -385,8 +393,10 @@ PATCHES = [
         # dialog module (`.questionsContainer_<hash>`, `.option_<hash>`,
         # `.optionLabel_<hash>` ...) is not on it. Append one rule right
         # after the module's own questionsContainer rule, reusing its hash.
+        # (`(?<!>)`: 2.1.286 adds `.withPreview_<h>>.questionsContainer_<h>{...}`
+        # layout rules; only the module's standalone rule gets the companion.)
         "find": re.compile(
-            r'(\.questionsContainer_([\w-]+)\{(?!user-select:text\})[^{}]*\})'
+            r'((?<!>)\.questionsContainer_([\w-]+)\{(?!user-select:text\})[^{}]*\})'
             r'(?!\.questionsContainer_\2\{user-select:text\})'
         ),
         "replace": lambda m: (
@@ -408,19 +418,49 @@ PATCHES = [
         # it, so with 6a a text selection would toggle the option; skip the
         # handler while a non-empty selection exists (a plain click always
         # collapses the selection on mousedown first, so it still works).
-        "find": re.compile(
-            r'(tabIndex:0,role:([\w$]+)\.multiSelect\?"checkbox":"radio",'
-            r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:)'
-            r'\(\)=>([\w$]+\(\2\.question,(?:[\w$]+\.label|"Other")\)),'
-        ),
-        "replace": lambda m: (
-            f'{m.group(1)}()=>{{if(window.getSelection()?.toString())return;'
-            f'{m.group(3)}}},'
-        ),
-        "already": re.compile(
-            r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:\(\)=>'
-            r'\{if\(window\.getSelection\(\)\?\.toString\(\)\)return;'
-        ),
+        #
+        # 2.1.286 moved the row into one shared component (also used, without
+        # `onSelect`, for the read-only review of answered questions):
+        #   function am({multiSelect:$,...,onSelect:q,...}){let B=q===void 0;
+        #     return R("div",{...,tabIndex:B?void 0:0,role:$?"checkbox":"radio",
+        #       "aria-checked":X,"aria-disabled":B?!0:void 0,"aria-describedby":G,
+        #       onClick:q,onMouseEnter:U,...,onKeyDown:q&&((K)=>{...q()}),...
+        # Callers pass `onSelect:()=>f(p.question,label)` (no event argument),
+        # so the guard wraps `q` once, in the component.
+        "alts": [
+            (
+                re.compile(
+                    r'(tabIndex:0,role:([\w$]+)\.multiSelect\?"checkbox":"radio",'
+                    r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:)'
+                    r'\(\)=>([\w$]+\(\2\.question,(?:[\w$]+\.label|"Other")\)),'
+                ),
+                lambda m: (
+                    f'{m.group(1)}()=>{{if(window.getSelection()?.toString())return;'
+                    f'{m.group(3)}}},'
+                ),
+                re.compile(
+                    r'"aria-checked":[\w$]+\((?:[\w$]+\.label|"Other")\),onClick:\(\)=>'
+                    r'\{if\(window\.getSelection\(\)\?\.toString\(\)\)return;'
+                ),
+            ),
+            (
+                re.compile(
+                    r'(role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
+                    r'"aria-disabled":[\w$]+\?!0:void 0,(?:"aria-describedby":[\w$]+,)?'
+                    r'onClick:)([\w$]+)(?=,onMouseEnter:)'
+                ),
+                lambda m: (
+                    f'{m.group(1)}{m.group(2)}&&(()=>{{'
+                    f'if(window.getSelection()?.toString())return;{m.group(2)}()}})'
+                ),
+                re.compile(
+                    r'role:[\w$]+\?"checkbox":"radio","aria-checked":[\w$]+,'
+                    r'"aria-disabled":[\w$]+\?!0:void 0,(?:"aria-describedby":[\w$]+,)?'
+                    r'onClick:([\w$]+)&&\(\(\)=>\{'
+                    r'if\(window\.getSelection\(\)\?\.toString\(\)\)return;\1\(\)\}\)'
+                ),
+            ),
+        ],
     },
     {
         "name": "9a peer (cross-session) messages do not start a new turn",
@@ -455,24 +495,87 @@ PATCHES = [
         #     B=H.map((R)=>xz(R.content)),W="";for(...){...}
         #     let K=B.find((R)=>R?.type==="ideDiagnostics"),A=B.some((R)=>R?.type==="text"),
         #     j=!K&&A,P=q$0(j),...
+        # 2.1.278 adds a `held` prop and a second text test:
+        #     P=K.some(...)||U41(Z.content),j=!H&&!M&&P,w=hG0(j),...
+        # 2.1.286 appends a read-only term: O=!U&&!M&&N&&!w,_=yK0(O),...
+        # so any `&&` chain of optionally negated identifiers is accepted (the
+        # `,p=fn(j),` tail pins the end of the chain).
         #   ... className:`${a0.message} ${w} ${j?a0.stickyHeader:""} ...`
         # `j` = "this message is the turn header" (sticky class, click-to-
         # scroll handlers, screen-reader heading). A peer message folded into
         # a turn by 9a must not stick over that turn's real header.
         "find": re.compile(
             r'(let [\w$]+=[\w$]+\(null\),[\w$]+=\[\.\.\.(?P<msg>[\w$]+)\.content\]'
-            r'\.reverse\(\),.{0,600}?'
-            r',(?P<j>[\w$]+)=!(?P<k>[\w$]+)&&(?P<a>[\w$]+))'
+            r'\.reverse\(\),.{0,1500}?'
+            r',(?P<j>[\w$]+)=!?[\w$]+(?:&&!?[\w$]+)+)'
             r'(?!&&(?P=msg)\.origin\?\.kind!=="peer")'
-            r'(,(?P<p>[\w$]+)=[\w$]+\((?P=j)\),)'
+            r'(?P<tail>,(?P<p>[\w$]+)=[\w$]+\((?P=j)\),)'
         ),
         "replace": lambda m: (
-            f'{m.group(1)}&&{m.group("msg")}.origin?.kind!=="peer"{m.group(6)}'
+            f'{m.group(1)}&&{m.group("msg")}.origin?.kind!=="peer"{m.group("tail")}'
         ),
         "already": re.compile(
-            r'=\[\.\.\.([\w$]+)\.content\]\.reverse\(\),.{0,600}?'
-            r',([\w$]+)=![\w$]+&&[\w$]+&&\1\.origin\?\.kind!=="peer",[\w$]+=[\w$]+\(\2\),'
+            r'=\[\.\.\.([\w$]+)\.content\]\.reverse\(\),.{0,1500}?'
+            r',([\w$]+)=!?[\w$]+(?:&&!?[\w$]+)+&&\1\.origin\?\.kind!=="peer",[\w$]+=[\w$]+\(\2\),'
         ),
+    },
+    {
+        "name": "10 New session opens in the active editor group (never a split)",
+        "target": "extension.js",
+        # createPanel(sessionId, prompt, viewColumn, ...) picks the column
+        # when the caller passes none (sidebar "New session",
+        # claude-vscode.editor.open / window.open):
+        #   K=B4.ViewColumn.Beside;
+        #   let V=sp$();                         // a tab group holding ONLY Claude panels
+        #   if(V)K=V.viewColumn;
+        #   else K=this.findUnusedColumn(),W=!0  // <- first column without any tab = SPLIT
+        # (2.1.220 inlines the group search instead of sp$(); same tail.
+        #  2.1.274: `else G=this.findUnusedColumn(),W=G!==H4.ViewColumn.Beside}`
+        #  -- the flag is derived from the result instead of a literal !0.)
+        # The Claude-only-group preference is kept; only the split fallback
+        # becomes ViewColumn.Active (the group you are in), startedInNewColumn
+        # = false. findUnusedColumn() has no other caller.
+        #
+        # 2.1.282+ dropped findUnusedColumn(). The column is now
+        #   let q=k1.window.tabGroups.all.map(BC),
+        #       H=BH1(q)??UH1(q,[...this.panelComms.keys()].flatMap(...));
+        #                    // a group that already holds Claude tabs (active one
+        #                    // first), or a lone empty group, or a live panel's column
+        #   if(!H){H=await this.startClaudeGroup();   // <- newGroupRight/Below = SPLIT
+        #          let Z=$!==void 0?this.sessionPanels.get($):void 0; ...}
+        #   K=H?.viewColumn??k1.ViewColumn.Active,G=H?.startsClaudeGroup??!1
+        # so a split only happens when no group holds a Claude tab yet. Dropping
+        # the startClaudeGroup() call leaves H undefined -> ViewColumn.Active,
+        # startedInNewColumn false (the active group is not locked either).
+        # startClaudeGroup() has no other caller.
+        "alts": [
+            (
+                re.compile(
+                    r'(?P<v>[\w$]+)=(?P<ns>[\w$]+)\.ViewColumn\.Beside;(?P<mid>let [\w$]+=.{0,400}?)'
+                    r'else (?P=v)=this\.findUnusedColumn\(\),(?P<w>[\w$]+)='
+                    r'(?:!0|(?P=v)!==(?P=ns)\.ViewColumn\.Beside)\}'
+                ),
+                lambda m: (
+                    f'{m.group("v")}={m.group("ns")}.ViewColumn.Beside;{m.group("mid")}'
+                    f'else {m.group("v")}={m.group("ns")}.ViewColumn.Active,{m.group("w")}=!1}}'
+                ),
+                re.compile(
+                    r'([\w$]+)=([\w$]+)\.ViewColumn\.Beside;let [\w$]+=.{0,400}?'
+                    r'else \1=\2\.ViewColumn\.Active,[\w$]+=!1\}'
+                ),
+            ),
+            (
+                re.compile(
+                    r'(if\(!(?P<h>[\w$]+)\)\{(?P=h)=)await this\.startClaudeGroup\(\)'
+                    r'(?P<tail>;let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\()'
+                ),
+                lambda m: f'{m.group(1)}void 0{m.group("tail")}',
+                re.compile(
+                    r'if\(!([\w$]+)\)\{\1=void 0'
+                    r';let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\('
+                ),
+            ),
+        ],
     },
 ]
 

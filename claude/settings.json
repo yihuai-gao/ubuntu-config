@@ -1,0 +1,159 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push backup main)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(fd *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(tree *)",
+      "Bash(wc *)",
+      "Bash(du *)",
+      "Bash(nm *)",
+      "Bash(ldd *)",
+      "Bash(file *)",
+      "Bash(which *)",
+      "Bash(printenv *)",
+      "Bash(hostname *)",
+      "Bash(free *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(cut *)",
+      "Bash(awk *)",
+      "Bash(diff *)",
+      "Bash(stat *)",
+      "Bash(readlink *)",
+      "Bash(realpath *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(pwd)",
+      "Bash(pwd *)",
+      "Bash(env)",
+      "Bash(type *)",
+      "Bash(xargs *)",
+      "Bash(echo *)",
+      "Bash(wc *)",
+      "Bash(curl *)",
+      "Bash(sed *)",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "Bash(/home/yihuai/.local/bin/set-session-title.sh *)",
+      "Bash(set-session-title.sh *)",
+      "Bash(ssh realdesktop007 *)",
+      "Bash(ssh -o * realdesktop007 *)",
+      "SendMessage",
+      "Bash(/home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728/projects/cosmos3/cam_uva/scripts/train/hc *)",
+      "Bash(projects/cosmos3/cam_uva/scripts/train/hc *)",
+      "Bash(/usr/bin/python3 projects/cosmos3/cam_uva/scripts/train/daemon_ctl.py *)",
+      "Bash(/usr/bin/python3 /home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728/projects/cosmos3/cam_uva/scripts/train/daemon_ctl.py *)",
+      "Bash(/usr/bin/python3 projects/cosmos3/cam_uva/scripts/ops/oci_snapshot.py *)",
+      "Bash(/usr/bin/python3 /home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728/projects/cosmos3/cam_uva/scripts/ops/oci_snapshot.py *)",
+      "Bash(/usr/bin/python3 projects/cosmos3/cam_uva/scripts/train/hosted_submit.py *)",
+      "Bash(/usr/bin/python3 /home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728/projects/cosmos3/cam_uva/scripts/train/hosted_submit.py *)",
+      "Bash(git write-tree)",
+      "Bash(git write-tree *)",
+      "Bash(git read-tree *)",
+      "Bash(git archive *)",
+      "Bash(git restore --staged *)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.kube/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "claude-fable-5-1[1m]",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*(lepton|slurm)_submit_training_job",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/group_name_gate.py",
+            "timeout": 10,
+            "statusMessage": "Group-name gate"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/group_name_gate.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/composed_config_gate.py",
+            "timeout": 240,
+            "statusMessage": "composed_config gate (HF run root check)"
+          }
+        ]
+      }
+    ]
+  },
+  "effortLevel": "xhigh",
+  "tui": "default",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(uv run:*)",
+      "Bash(ruff:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(git push origin HEAD:refs/heads/yihuai*)",
+      "SendMessage"
+    ],
+    "soft_deny": [
+      "$defaults",
+      "Bash(aws s3 rm:*)",
+      "Bash(kubectl delete:*)"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: NVIDIA — Deep Imagination Research (DIR) Group / Cosmos Lab (GitLab group `dir`, project `imaginaire4`; docs also reference `cosmos-lab/imaginaire4` and `cosmos-lab/cosmos-infra`)",
+      "**Cloud provider(s)**: AWS (S3 via `aws` CLI and `packages/cosmos-s3-utils`), Google Cloud Storage (storage.googleapis.com; GCS credential rotation doc), plus Lepton GPU cloud (`*.xenon.lepton.run`) and NVIDIA NGC",
+      "**Repository visibility**: not queryable via gh (origin is `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git`, an internal GitLab host, not a plain GitHub owner/repo URL) — treat as private/internal: the README states the repo is NVIDIAN-only and must not be accessible to unauthorized people",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: HashiCorp Vault (`VAULT_ADDR`; `ci_cd/vault/vault-deployment-secrets.tmpl`, `ci_cd/vault/vault-docker-secrets.tmpl`); GitLab CI/CD variables (e.g. `GITLAB_TOKEN`); Pulse/TruffleHog secret scanning in CI; `credentials/` is never to be checked in",
+      "**Default / protected branches**: default branch `main`; classic protection not queryable here. Treat `main` (and `master`) as protected — repo docs direct all work to `$USER/<feature>` branches and forbid pushing to `main`",
+      "**CI/CD deploy targets**: GitLab CI on gitlab-master.nvidia.com (stages code-review → build → testing → post; `ci_cd/` YAML files, cosmos-infra templates); Docker/container builds; `deployment/` for Cosmos model cloud deploys; Lepton job submission (`submit`, `ls_remote`, `serve_ckpt`)",
+      "**Network posture**: internal NVIDIA GitLab reachable over SSH on port 12051; Teleport access path observed (`ext-nv-stg-lepton.teleport.sh`); Lepton GPU nodes reached over their own hostnames; Docker-based dev environment on Ubuntu 24.04",
+      "**Source control**: the trusted repo and its remote only — `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git` (no additional orgs configured for this project scope)",
+      "**Trusted internal domains**: gitlab-master.nvidia.com (including its `/api/v4`), download.nvidia.com and us.download.nvidia.com, and the Lepton job hosts `*.xenon.lepton.run` used by this checkout",
+      "**Trusted cloud buckets**: `nv-cosmos-models`, `nv-00-10206-dir`, `nv-00-10206-robot`, `lepton-l40s` (all usage-corroborated). Also present in repo config only: `nv-00-10206-checkpoint-experiments`, `nv-00-10206-checkpoint` (config-derived — not a confirmed upload destination; uploads of local data still require confirmation)",
+      "**Key internal services**: GitLab pipelines MCP server (`.claude/mcp/gitlab/server.py`), Vault, NGC/Docker registry, Lepton compute + checkpoint serving (`serve_ckpt`, `ls_remote`), Hugging Face hub for model artifacts, Postgres targets used by yotta pipelines",
+      "**Internal package registry**: None configured — dependencies come via `uv`/pip from pypi.org and NGC/Docker images",
+      "**Sensitive data locations & audiences**: `credentials/` (never to be committed), `packages/queue-service/.env` and any `.env`/`*.secret` files, `apis/llm/credentials_loader.py`, `ci_cd/vault/*.tmpl`, `packages/cosmos-lepton/tests/test_secrets_service.py`, `.pulse-trufflehog-allowlist.toml`, plus training data/checkpoints in the `nv-*` buckets; audiences limited to NVIDIANs cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`); in this repo that includes `pipelines/sila/launch_scripts/prod_launch.py`, `check_and_launch_prod.py`, and `pipelines/sila/common/prod_launch_monitor.py`",
+      "**Protected deployment namespaces / environments**: k8s namespaces observed in use — `projects` and `robolab`; treat writes/deletes there as protected, and fall back to the Sensitive remote targets heuristic elsewhere",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment; also GitLab CI definitions (`.gitlab-ci.yml`, `ci_cd/`) and Vault secret templates",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development on the imaginaire4 (i4) monorepo — cam_uva project work under `projects/cosmos3/cam_uva`, training/eval job submission and monitoring on Lepton, and GitLab CI/CD job authoring and validation",
+      "**Trusted repo**: `/home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728` and its configured remote `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git`. Treat as private/internal per the README; confidential material may live there, but secrets and sensitive data are never cleared into it by visibility alone",
+      "**Org-specific CLIs**: `uv`, `submit`, `ls_remote`, `serve_ckpt`, `serve_mcp`, `hf`/`hful`, `aws`, `nvidia-smi`/`nvitop`, `ruff`, `just`, `torchrun`, `rollout`, `pacli`, `set-session-title`, `mutagen`",
+      "**Routine under `$USER/` prefix**: feature-branch pushes to `origin` under the `yihuaig/`-style `$USER/<feature>` prefix are routine; pushes to `main` are not"
+    ]
+  }
+}

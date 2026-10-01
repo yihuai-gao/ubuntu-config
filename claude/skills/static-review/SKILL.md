@@ -23,6 +23,15 @@ Review uncommitted changes in the current git repository by reading code only, t
    git diff --staged   # staged
    ```
    For untracked files, list them from `git status` and read each in full with the Read tool.
+   **Always run the large-file check in this step (user directive 2026-09-19)** — the GitLab server refuses the WHOLE push when any file is over 5 MiB (5,242,880 bytes) and not a Git LFS pointer, and by then the blob sits inside commits that must be rewritten:
+   ```bash
+   # every changed / staged / untracked file over 5 MiB (sizes in bytes, largest first)
+   { git diff --name-only -z; git diff --staged --name-only -z; git ls-files -z --others --exclude-standard; } \
+     | sort -zu | xargs -0 -r stat -c '%s %n' 2>/dev/null | awk '$1 > 5242880' | sort -rn
+   # blobs already inside UNPUSHED commits (the push would be refused even if the working tree is fixed)
+   git rev-list --objects HEAD --not --remotes | git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' | awk '$1=="blob" && $2 > 5242880'
+   ```
+   In the cam_uva checkout the same check is one call: `/usr/bin/python3 projects/cosmos3/cam_uva/scripts/ops/check_large_files.py --worktree` (exit 1 = findings).
 
 2. **Read enough context.** A diff hunk alone is rarely enough. For each changed region, Read the surrounding function/class and, when relevant, the callers, callees, and definitions of touched symbols. Do not review hunks in isolation — many real issues live at the boundary between changed and unchanged code.
 
@@ -64,6 +73,12 @@ Review uncommitted changes in the current git repository by reading code only, t
 - All code inside `cam_uva` must be self-contained: it must NOT import from the `imaginaire` codebase.
 - Flag any `import imaginaire...` or `from imaginaire... import ...` (and any indirect dependency that pulls in `imaginaire`) in changed `cam_uva` files as a 🔴 correctness issue.
 - Suggestion: vendor/copy the needed functionality into `cam_uva`, or replace it with a self-contained equivalent.
+
+**Oversized files (GitLab 5 MiB push limit — user directive 2026-09-19)**
+- Any changed, staged or untracked file **over 5 MiB (5,242,880 bytes)** that is not tracked by Git LFS (`git check-attr filter -- <path>` ≠ `lfs`) is a 🔴 finding, ALWAYS — the server rejects the entire push (`remote: GitLab: File "…" is larger than the allowed size of 5 MiB`), and once committed the blob has to be rewritten out of every unpushed commit. **Never stage such a file** (Workflow step 6 exception: finding still open), and the review does not end "clean" / does not propose a commit message while one remains.
+- A file between **4 MiB and 5 MiB** that is generated and grows with the data (tables, manifests, lock files, notebooks with outputs) is a 🟡 finding: it will cross the limit on the next regeneration.
+- A blob over the limit that is already in an unpushed commit is a 🔴 **[substantial]** finding even when the working tree no longer holds it: report the commit(s) and the exact history-rewrite needed; never rewrite history yourself without explicit approval.
+- Fixes, in order of preference: shrink the encoding (compact JSON `separators=(",", ":")` instead of `indent=`, fewer float digits, drop derivable fields, gzip/parquet for tabular data) and make the GENERATOR write that form and refuse an output over the limit, so a regeneration cannot regress; move the artifact out of git (HF / GCS / shared disk) and commit a pointer; Git LFS only when the repo already uses LFS for that file type. Re-encoding an existing data file in place is an [easy fix] only when the loader parses it identically; changing the format or location is [substantial].
 
 **Security & safety**
 - Injection (SQL/shell/path), unsafe deserialization, eval of untrusted input
@@ -113,6 +128,7 @@ Base the classification on the *smallest correct* fix, not the most thorough one
 ## Rules
 
 - **Read-only analysis; edits only in the fix pass.** Inspect with `git` and Read; never run tests or builds as part of the review. The only file edits are the automatic [easy fix] pass of Workflow step 5 (plus any follow-up fixes the user explicitly requests for [substantial] findings) — never edit before the report is presented, never auto-apply a [substantial] finding, always stage the files a fix pass edited and then every reviewed file, loop on whatever is still unstaged until `git status --short` is clean (Workflow step 6), and always end with the commit message (Workflow step 7).
+- **No file over 5 MiB is ever staged or passed as reviewed.** The large-file check of Workflow step 1 runs in EVERY review, including each pass of the step-6 loop; an oversized file (or an oversized blob in an unpushed commit) is always reported as 🔴, never waved through because it is "just data" or "generated".
 - **Be specific.** Every finding cites a concrete location and explains the concrete consequence — no generic advice.
 - **No false alarms.** Verify a concern against the actual surrounding code before reporting it. If unsure whether something is a real problem, say so explicitly and explain the condition under which it would be.
 - **Prioritize.** Lead with correctness bugs; keep style nits brief and clearly separated.

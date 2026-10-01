@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """traffic_monitor.py - per-process network traffic dashboard for a Linux desktop.
 
-Standard library only; needs root (CAP_NET_RAW + reading every /proc/<pid>/fd).
+Standard library only; needs root (CAP_NET_RAW + reading every /proc/<pid>/fd) -- except
+``--counters-only``: overall download / upload of every interface from /proc/net/dev (rates,
+totals, history, the same /api/state shape), no sniffer, no per-process rows, no storage
+mode; runs as any user (what a hosted "overall speed" service needs, 2026-09-09).
 
 How it works
   * One AF_PACKET sniffer thread per monitored interface counts bytes per flow
@@ -532,11 +535,12 @@ ALL_VIEW = "all"
 
 
 class Monitor:
-    def __init__(self, ifaces, interval=1.0, history=300, use_conntrack=True):
+    def __init__(self, ifaces, interval=1.0, history=300, use_conntrack=True, counters_only=False):
         self.interval = interval
         self.history_len = history
         self.use_conntrack = use_conntrack and os.path.exists("/proc/net/nf_conntrack")
         self.hostname = socket.gethostname()
+        self.counters_only = counters_only    # no root: /proc/net/dev rates only, sniffers never started
         self.sniffers = {}                    # iface -> Sniffer (insertion order = capture order)
         self.views = {}                       # iface | ALL_VIEW -> View
         self.inode_pid = {}
@@ -591,6 +595,8 @@ class Monitor:
             if not iface_exists(iface):
                 return f"{iface}: no such interface"
             s = self._add_capture(iface)
+            if self.counters_only:      # a view over the counters, no sniffer to start
+                return None
             s.start()
         time.sleep(0.3)  # bind errors surface almost immediately
         if s.error:
@@ -607,8 +613,9 @@ class Monitor:
         return None
 
     def start_threads(self):
-        for s in self.sniffers.values():
-            s.start()
+        if not self.counters_only:
+            for s in self.sniffers.values():
+                s.start()
         threading.Thread(target=self._loop, name="aggregate", daemon=True).start()
 
     def errors(self):
@@ -701,14 +708,18 @@ class Monitor:
             sniffers = list(self.sniffers.items())
         drained = {}                          # iface -> (flows, non_ip)
         nflows = 0
-        for iface, s in sniffers:
-            c, n = s.drain()
-            drained[iface] = (c, n)
-            nflows += len(c)
+        if self.counters_only:                # no sniffer, no socket table, no /proc/<pid>/fd walk
+            drained = {iface: ({}, [0, 0]) for iface, _s in sniffers}
+            resolved = {iface: [] for iface, _s in sniffers}
+        else:
+            for iface, s in sniffers:
+                c, n = s.drain()
+                drained[iface] = (c, n)
+                nflows += len(c)
+            self.drops += sum(s.drops() for _i, s in sniffers)
+            conn, listen = self._socket_table()
+            resolved = {iface: self._resolve(c, conn, listen) for iface, (c, _n) in drained.items()}
         self.flows = nflows
-        self.drops += sum(s.drops() for _i, s in sniffers)
-        conn, listen = self._socket_table()
-        resolved = {iface: self._resolve(c, conn, listen) for iface, (c, _n) in drained.items()}
 
         dev = read_net_dev()
         rates = {}
@@ -760,7 +771,7 @@ class Monitor:
             if r is None:
                 continue
             out.append({"name": i, "rx_bps": r[0], "tx_bps": r[1], "rx_total": r[2], "tx_total": r[3],
-                        "state": r[4], "captured": i in self.sniffers})
+                        "state": r[4], "captured": i in self.sniffers and not self.counters_only})
         return out
 
     def snapshot(self, view=None, top_series=7):
@@ -788,6 +799,7 @@ class Monitor:
                 "history": history,
                 "meta": {"flows": self.flows, "drops": self.drops, "scan_ms": round(self.scan_ms, 1), "tick_ms": round(self.tick_ms, 1),
                          "conntrack": self.use_conntrack, "netns": len(self.netns),
+                         "counters_only": self.counters_only,
                          "errors": self.errors()},
             }
 
@@ -1119,13 +1131,17 @@ def main():
     ap.add_argument("--text", action="store_true", help="print a top-like table to the terminal instead of serving HTTP")
     ap.add_argument("--nice", type=int, default=10, help="nice value for the monitor itself (default 10; it drops its own packets under CPU contention instead of slowing other processes)")
     ap.add_argument("--selftest", action="store_true", help="run parser self-tests and exit")
+    ap.add_argument("--counters-only", action="store_true",
+                    help="no root needed: overall rates of every interface from /proc/net/dev only "
+                         "(no per-process attribution, no storage mode)")
     args = ap.parse_args()
 
     if args.selftest:
         selftest()
         return
-    if os.geteuid() != 0:
-        sys.exit("traffic_monitor needs root (raw sockets + /proc/<pid>/fd of every user): run with sudo")
+    if os.geteuid() != 0 and not args.counters_only:
+        sys.exit("traffic_monitor needs root (raw sockets + /proc/<pid>/fd of every user): run with sudo,"
+                 " or --counters-only for the overall interface rates without root")
 
     try:
         os.nice(args.nice)
@@ -1140,12 +1156,13 @@ def main():
     if not ifaces:
         sys.exit("no network interface found; pass --iface")
 
-    mon = Monitor(ifaces, interval=args.interval, history=args.history, use_conntrack=not args.no_conntrack)
+    mon = Monitor(ifaces, interval=args.interval, history=args.history, use_conntrack=not args.no_conntrack,
+                  counters_only=args.counters_only)
     mon.start_threads()
     time.sleep(0.3)
     for e in mon.errors():
         print(f"[traffic_monitor] capture error: {e}", file=sys.stderr)
-    if all(s.error for s in mon.sniffers.values()):
+    if not args.counters_only and all(s.error for s in mon.sniffers.values()):
         sys.exit("no interface could be captured")
 
     if args.text:
@@ -1156,7 +1173,9 @@ def main():
         return
 
     storage, storage_error = None, "disabled with --no-storage"
-    if not args.no_storage:
+    if args.counters_only:
+        storage_error = "counters-only mode (per-process disk attribution needs root)"
+    if not args.no_storage and not args.counters_only:
         hio = load_hdd_io_monitor()
         if hio is None:
             storage_error = "hdd_io_monitor.py not found next to traffic_monitor.py or in ../hdd_io_monitor/"
@@ -1177,8 +1196,8 @@ def main():
         index_html = f.read()
     srv = ThreadingHTTPServer((args.bind, args.port), make_handler(mon, index_html, storage, storage_error))
     srv.daemon_threads = True
-    print(f"[traffic_monitor] {mon.hostname}: capturing {', '.join(ifaces)}"
-          f"{' (conntrack de-NAT on)' if mon.use_conntrack else ''}", file=sys.stderr)
+    print(f"[traffic_monitor] {mon.hostname}: {'counters only (no root) for' if mon.counters_only else 'capturing'} {', '.join(ifaces)}"
+          f"{' (conntrack de-NAT on)' if mon.use_conntrack and not mon.counters_only else ''}", file=sys.stderr)
     print(f"[traffic_monitor] dashboard: http://{args.bind}:{args.port}/   (Ctrl-C to stop)", file=sys.stderr)
     try:
         srv.serve_forever()
