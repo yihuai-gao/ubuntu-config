@@ -277,6 +277,15 @@ gif() {
         return 1
     fi
 
+    # if multiple inputs are given, convert each one in turn
+    if [ $# -gt 1 ]; then
+        local arg
+        for arg in "$@"; do
+            gif "$arg"
+        done
+        return 0
+    fi
+
     local input="$1"
     # if input is a directory, then convert all videos in the directory to gif
     if [ -d "$input" ]; then
@@ -292,17 +301,45 @@ gif() {
 
     echo "Optimizing $input for a smaller file size..."
 
-    # Keep native resolution; shrink size via fps=10, 128 colors,
+    # Shrink size via 10fps / 480p caps, 128 colors,
     # 'stats_mode=diff' palette, coarse bayer dither (compresses better),
-    # and 'diff_mode=rectangle' so only changed regions are re-encoded
+    # and 'diff_mode=rectangle' so only changed regions are re-encoded.
+    # min() on both caps so slower/smaller sources are never up-sampled.
     ffmpeg -i "$input" -vf \
-    "fps=10,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle" \
+    "fps=min(10\,source_fps),scale=-2:min(480\,ih):flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle" \
     -y "$output"
     if command -v gifsicle >/dev/null 2>&1; then
         gifsicle -O3 --lossy=30 "$output" -o "$output"
     fi
 
-    echo "Done! Check $output"
+    # If the result is still over GIF_MAX_SIZE_MB (default 50MB), re-encode
+    # from the source with progressively more aggressive fps/resolution/color
+    # caps and a stronger gifsicle lossy pass until it fits (or we run out
+    # of levels).
+    local max_mb="${GIF_MAX_SIZE_MB:-50}"
+    local max_bytes=$(( max_mb * 1024 * 1024 ))
+    local level size fps height colors lossy
+    for level in "8 360 64 80" "6 270 48 120" "5 240 32 160"; do
+        size=$(stat -c%s "$output" 2>/dev/null || echo 0)
+        if [ "$size" -le "$max_bytes" ]; then
+            break
+        fi
+        read -r fps height colors lossy <<< "$level"
+        echo "$output is $(( size / 1024 / 1024 ))MB (limit ${max_mb}MB); recompressing at ${fps}fps, ${height}p, ${colors} colors..."
+        ffmpeg -i "$input" -vf \
+        "fps=min(${fps}\,source_fps),scale=-2:min(${height}\,ih):flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=${colors}:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle" \
+        -y "$output"
+        if command -v gifsicle >/dev/null 2>&1; then
+            gifsicle -O3 --lossy="$lossy" "$output" -o "$output"
+        fi
+    done
+
+    size=$(stat -c%s "$output" 2>/dev/null || echo 0)
+    if [ "$size" -gt "$max_bytes" ]; then
+        echo "Warning: $output is still $(( size / 1024 / 1024 ))MB after maximum compression."
+    fi
+
+    echo "Done! Check $output ($(( size / 1024 ))KB)"
 }
 
 
