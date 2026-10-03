@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """claude-acct — switch Claude Code accounts without re-login, and show usage.
 
-  claude-acct save [name]   snapshot the current login into the store (default name = email)
-  claude-acct use           table of every saved account: Fable weekly used + reset time
+  claude-acct               snapshot the current login into the store, then show the
+                            table of every saved account: Fable weekly used + reset time
                             (enterprise accounts: credit spend `$used / $limit`; no reset date)
-  claude-acct use <name>    save current login, swap <name> in, then show its usage
-  claude-acct list          same table as bare `use`
+  claude-acct <name>        snapshot the current login, swap <name> in, then show its usage
   claude-acct rm <name>     delete a saved account
 
 Store: ~/.claude-accounts/<name>.json (mode 600). Each entry holds the raw
@@ -68,7 +67,7 @@ def entry_path(name):
 def load_entry(name):
     e = read_json(entry_path(name))
     if e is None:
-        die(f"no saved account {name!r} (run `claude-acct list`)")
+        die(f"no saved account {name!r} (run `claude-acct` to see the saved ones)")
     return e
 
 
@@ -81,7 +80,7 @@ def save_entry(name, entry):
 def list_names():
     if not os.path.isdir(STORE):
         return []
-    return sorted(f[:-5] for f in os.listdir(STORE) if f.endswith(".json"))
+    return sorted(f[:-5] for f in os.listdir(STORE) if f.endswith(".json") and not f.startswith("."))
 
 
 def die(msg, code=1):
@@ -148,13 +147,13 @@ def http_json(url, method="GET", body=None, token=None, timeout=15):
         req.add_header("Authorization", f"Bearer {token}")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.status, json.loads(r.read().decode() or "null")
+            return r.status, json.loads(r.read().decode() or "null"), dict(r.headers)
     except urllib.error.HTTPError as e:
         try:
             payload = json.loads(e.read().decode())
         except Exception:
             payload = None
-        return e.code, payload
+        return e.code, payload, dict(e.headers)
 
 
 def token_expired(oauth):
@@ -170,7 +169,7 @@ def refresh(oauth):
         "client_id": CLIENT_ID,
         "scope": " ".join(oauth.get("scopes") or DEFAULT_SCOPES),
     }
-    status, resp = http_json(TOKEN_URL, "POST", body, timeout=30)
+    status, resp, _ = http_json(TOKEN_URL, "POST", body, timeout=30)
     if status != 200 or not resp or "access_token" not in resp:
         raise RuntimeError(f"token refresh failed ({status}): {json.dumps(resp)[:200]}")
     new = dict(oauth)
@@ -203,11 +202,72 @@ def ensure_fresh(name, entry, is_current):
 
 
 # ---------------------------------------------------------------- usage
+USAGE_CACHE = os.path.join(STORE, ".usage_cache.json")
+CACHE_FRESH_S = 60  # a reading younger than this is reused instead of hitting the endpoint again
+
+
+class RateLimited(Exception):
+    def __init__(self, retry_s):
+        super().__init__(f"usage endpoint rate-limited, retry in {fmt_secs(retry_s)}")
+        self.retry_s = retry_s
+
+
+def fmt_secs(secs):
+    secs = max(0, int(secs))
+    h, m = divmod(secs // 60, 60)
+    return f"{h}h {m:02d}m" if h else f"{m}m" if m else f"{secs}s"
+
+
+def load_cache():
+    return read_json(USAGE_CACHE, {}) or {}
+
+
+def store_cache(cache):
+    os.makedirs(STORE, mode=0o700, exist_ok=True)
+    write_json_atomic(USAGE_CACHE, cache)
+
+
 def fetch_usage(token):
-    status, data = http_json(USAGE_URL, token=token, timeout=15)
+    status, data, headers = http_json(USAGE_URL, token=token, timeout=15)
+    if status == 429:
+        try:
+            retry_s = int(headers.get("Retry-After") or headers.get("retry-after") or 60)
+        except ValueError:
+            retry_s = 60
+        raise RateLimited(retry_s)
     if status != 200:
         raise RuntimeError(f"usage endpoint {status}: {json.dumps(data)[:160]}")
     return data
+
+
+def cached_usage(name, token_getter):
+    """(usage dict, note) for one account.
+
+    The usage endpoint has a one-hour quota per account. A successful reading is cached in the
+    store; a reading younger than CACHE_FRESH_S is reused, a 429 marks the account blocked until
+    the server's Retry-After and the last good reading is shown with its age instead of an error.
+    """
+    now = time.time()
+    cache = load_cache()
+    c = cache.get(name) or {}
+    if c.get("usage") and now - c.get("at", 0) < CACHE_FRESH_S:
+        return c["usage"], ""
+    if c.get("blocked_until", 0) > now:
+        if not c.get("usage"):
+            raise RateLimited(c["blocked_until"] - now)
+        return c["usage"], f"cached {fmt_secs(now - c['at'])} ago; rate-limited for {fmt_secs(c['blocked_until'] - now)}"
+    try:
+        usage = fetch_usage(token_getter())
+    except RateLimited as e:
+        c["blocked_until"] = now + e.retry_s
+        cache[name] = c
+        store_cache(cache)
+        if not c.get("usage"):
+            raise
+        return c["usage"], f"cached {fmt_secs(now - c['at'])} ago; rate-limited for {fmt_secs(e.retry_s)}"
+    cache[name] = {"usage": usage, "at": now}
+    store_cache(cache)
+    return usage, ""
 
 
 def pick_spend(usage):
@@ -279,8 +339,7 @@ def fmt_pct_used(u):
 
 def usage_row(name, entry, is_current):
     try:
-        token = ensure_fresh(name, entry, is_current)
-        usage = fetch_usage(token)
+        usage, note = cached_usage(name, lambda: ensure_fresh(name, entry, is_current))
     except Exception as e:  # keep the table going for the other accounts
         return {"name": name, "error": str(e)}
     fable = pick_fable(usage) or {}
@@ -290,7 +349,7 @@ def usage_row(name, entry, is_current):
         "email": (entry.get("oauthAccount") or {}).get("emailAddress", ""),
         "plan": entry["credentials"]["claudeAiOauth"].get("subscriptionType", ""),
         "fable_used": fmt_pct_used(fable.get("utilization")) if fable else fmt_spend(spend),
-        "fable_reset": fmt_reset(fable.get("resets_at")),
+        "fable_reset": fmt_reset(fable.get("resets_at")) + (f"  [{note}]" if note else ""),
     }
 
 
@@ -313,24 +372,11 @@ def show_usage(names):
             continue
         print(f"{mark} {r['label']:<{w}}  {r['plan']:<{pw}}  {r['fable_used']:>{uw}}  {r['fable_reset']}")
     if not cur:
-        print("\n(no saved account matches the active login; run `claude-acct save` first)")
+        print("\n(no saved account matches the active login; run /login in Claude Code, then `claude-acct`)")
 
 
 # ---------------------------------------------------------------- commands
-def cmd_save(name=None):
-    n = snapshot_current(name)
-    if n is None:
-        die(f"no active login in {CRED}; run /login in Claude Code first")
-    print(f"saved {n} -> {entry_path(n)}")
-
-
-def cmd_use(name=None):
-    names = list_names()
-    if name is None:
-        if not names:
-            die("no saved accounts; run `claude-acct save` while logged in")
-        show_usage(names)
-        return
+def cmd_switch(name):
     entry = load_entry(name)
     cur = snapshot_current()  # keep the current account's rotated refresh token
     if cur == name:
@@ -345,9 +391,13 @@ def cmd_use(name=None):
 
 
 def cmd_list():
+    """Snapshot the active login (so its rotated refresh token is never lost), then show every account."""
+    saved = snapshot_current()
+    if saved:
+        print(f"saved current login as {saved}")
     names = list_names()
     if not names:
-        die("no saved accounts; run `claude-acct save` while logged in")
+        die(f"no saved accounts and no active login in {CRED}; run /login in Claude Code first")
     show_usage(names)
 
 
@@ -359,25 +409,35 @@ def cmd_rm(name):
     print(f"removed {name}")
 
 
+RESERVED = ("list", "save", "use", "rm", "raw", "help", "-h", "--help")
+
+
 def main(argv):
-    cmd = argv[1] if len(argv) > 1 else "use"
-    arg = argv[2] if len(argv) > 2 else None
-    if cmd == "save":
-        cmd_save(arg)
-    elif cmd == "use":
-        cmd_use(arg)
-    elif cmd == "list":
+    if len(argv) == 1:
         cmd_list()
+        return
+    cmd = argv[1]
+    arg = argv[2] if len(argv) > 2 else None
+    if cmd in ("save", "use", "list"):
+        die(f"`{cmd}` was removed: bare `claude-acct` saves the current login and shows every account; "
+            f"`claude-acct <name>` switches accounts")
     elif cmd == "rm":
         if not arg:
             die("rm needs a name")
         cmd_rm(arg)
     elif cmd == "raw":  # dump the usage endpoint JSON (no tokens) for one account, for debugging
         name = arg or current_name() or die("raw needs a name (no saved account matches the active login)")
-        print(json.dumps(fetch_usage(ensure_fresh(name, load_entry(name), name == current_name())), indent=2))
-    else:
+        try:
+            print(json.dumps(fetch_usage(ensure_fresh(name, load_entry(name), name == current_name())), indent=2))
+        except RateLimited as e:
+            die(str(e))
+    elif cmd in ("-h", "--help", "help"):
         print(__doc__.strip())
-        sys.exit(0 if cmd in ("-h", "--help", "help") else 1)
+    elif cmd.startswith("-") or arg is not None:
+        print(__doc__.strip())
+        sys.exit(1)
+    else:
+        cmd_switch(cmd)
 
 
 if __name__ == "__main__":
