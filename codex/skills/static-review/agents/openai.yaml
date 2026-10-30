@@ -1,0 +1,4 @@
+interface:
+  display_name: "Static Review"
+  short_description: "Review changes and apply verified easy fixes"
+  default_prompt: "Use $static-review to review my pending changes, apply verified easy fixes, and stage the reviewed changes."

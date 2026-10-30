@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Install the Claude Code user-level config from this repo into ~/.claude: the PreToolUse hooks (group_name_gate.py,
-# composed_config_gate.py -- the cam_uva submission gates), the global CLAUDE.md and settings.json.
+# Install the Claude Code user-level config from this repo into ~/.claude: the hooks (group_name_gate.py,
+# composed_config_gate.py -- the cam_uva submission gates; subagent_gate.py -- the parallel-subagent rule, wired in
+# settings.json for UserPromptSubmit / PreToolUse / Stop), the global CLAUDE.md and settings.json.
 #
 #   ./install_claude_config.sh            # hooks always; CLAUDE.md / settings.json only when ~/.claude lacks them
 #   ./install_claude_config.sh --force    # overwrite CLAUDE.md / settings.json too (a dated backup is kept)

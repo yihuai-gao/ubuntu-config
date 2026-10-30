@@ -26,13 +26,19 @@ Current patches (see SKILL.md for full background on each):
    the `remote_control_auto_enable` check (your remoteControlAtStartup), so
    auto-enable follows settings.json exactly.
 
-3. [extension.js] Start every session in "auto" permission mode.
+3. [extension.js] Start every session in "bypassPermissions" (skip
+   permissions) mode, "auto" when bypass is not allowed.
    getInitialPermissionMode() otherwise resolves: claudeCode.initialPermissionMode
    setting -> persisted last-used mode (globalState "defaultPermissionMode")
-   -> "default". The persisted last-used mode is how sessions keep starting
-   in bypassPermissions. We insert an early `return"auto"`. If Auto mode is
-   unavailable (model/gate), the webview safely falls back to "default",
-   never bypass. You can still switch modes freely within a session.
+   -> "default", so the mode of the last session leaks into the next one.
+   We insert an early `if(this.getAllowDangerouslySkipPermissions())return
+   "bypassPermissions";return"auto"`: bypass needs the VS Code setting
+   claudeCode.allowDangerouslySkipPermissions (the extension refuses the
+   launch otherwise), so without it the session starts in Auto; if Auto
+   mode is unavailable (model/gate), the webview falls back to "default".
+   You can still switch modes freely within a session. The `find` regex
+   also matches the earlier `return"auto"` form of this patch, so a bundle
+   patched before 2026-10-30 is re-patched in place.
 
 4. [extension.js] Every new / resumed session runs on FORCED_MODEL (Fable 5.1),
    regardless of what any other session switched to. Three pieces:
@@ -125,6 +131,40 @@ Current patches (see SKILL.md for full background on each):
     (newGroupRight / newGroupBelow). We drop that call, so the fallback is
     ViewColumn.Active.
 
+11. [extension.js] Every new / resumed session starts at FORCED_EFFORT
+    ("high") thinking depth. spawnClaude() passes no `effort` option, so the
+    CLI resolves it from ~/.claude/settings.json (`effortLevel`,
+    `modelSettings.<model>.effortLevel`) or the model's catalog default --
+    and the in-session effort picker PERSISTS its pick to settings.json
+    (saveEffortLevelThroughCli -> update_settings userSettings), so one
+    session's pick becomes every later session's start. We add
+    `effort:"<FORCED_EFFORT>"` next to the forced model; the SDK turns it
+    into `--effort <level>`, which seeds the CLI's session effort
+    (verified in CLI 2.1.287: env CLAUDE_CODE_EFFORT_LEVEL > per-turn >
+    session (--effort / in-session pick) > settings table). /effort and
+    the picker still work inside the session. To change the level, edit
+    FORCED_EFFORT below and re-run (the regex re-patches a different value).
+
+12. [extension.js] Never attach the opened editor file or the selected text
+    to the context. Unpatched, every active-editor / selection change is
+    turned into a selection record and (a) handed to the webview, which
+    shows it as the file chip in the message box and attaches it to the
+    next prompt as the <ide_opened_file> / <ide_selection> block, and (b)
+    sent to the CLI as the IDE MCP `selection_changed` notification (also
+    replayed from a cache 500 ms after the CLI connects). The shipped
+    `claudeCode.attachOpenFile` setting only drops the opened FILE; the
+    selected text is still attached. Two pieces:
+    12a. the webview-side filter (`function X(sel,attachOpenFile){return
+         RR(sel.selectedText,attachOpenFile)?sel:void 0}`) always returns
+         void 0, so the extension never emits a selection (initial
+         `getSelection` seed included) and the webview has nothing to show
+         or attach.
+    12b. the MCP notifier (`async function mL(sel,server){try{server.send(
+         {jsonrpc:"2.0",method:"selection_changed",...`) returns at once, so
+         the CLI never learns of a selection either. The explicit
+         "Add to Claude context" command (`at_mentioned`) and the
+         getCurrentSelection MCP tool are deliberate actions and untouched.
+
 (Patches 7-8 live in patch7_send_user_file.py.)
 
 Each patch matches by STRUCTURE (minified identifiers change every release;
@@ -141,6 +181,11 @@ from pathlib import Path
 # works; the "[1m]" suffix selects the 1M-context variant.
 FORCED_MODEL = "claude-fable-5-1[1m]"
 _FM = re.escape(FORCED_MODEL)
+
+# Patch 11: the effort level (thinking depth) every new / resumed IDE
+# session is spawned with (--effort). One of low / medium / high / xhigh.
+FORCED_EFFORT = "xhigh"
+_FE = re.escape(FORCED_EFFORT)
 
 # Patch 5b: SVG geometry for the context-usage pie (20x20 viewBox, circle
 # r=5 centred at (10,10), arcs start at 12 o'clock and run clockwise -- the
@@ -175,13 +220,15 @@ PATCHES = [
     {
         "name": "shift+tab cycles permission mode -> no-op",
         "target": "webview/index.js",
-        # Original:  X.key==="Tab"&&X.shiftKey){X.preventDefault(),Y();return}
-        # Y() is the permission-mode cycle call. We drop ",Y()" so shift+tab
-        # is swallowed (preventDefault + return) and does nothing.
+        # Original (2.1.301):
+        #   if(S1.key==="Tab"&&S1.shiftKey){if(S1.preventDefault(),!xE1(S1))return;Y5();return}
+        # xE1(ev) is the "input is focused / not composing" guard, Y5() the
+        # permission-mode cycle call. We drop both so shift+tab is swallowed
+        # (preventDefault + return) and does nothing.
         # NB: minified identifiers may contain "$", so match [\w$]+ not \w+.
         "find": re.compile(
             r'(?P<p>[\w$]+)\.key==="Tab"&&(?P=p)\.shiftKey\)\{'
-            r'(?P=p)\.preventDefault\(\),[\w$]+\(\);return\}'
+            r'if\((?P=p)\.preventDefault\(\),![\w$]+\((?P=p)\)\)return;[\w$]+\(\);return\}'
         ),
         "replace": lambda m: (
             f'{m.group("p")}.key==="Tab"&&{m.group("p")}.shiftKey){{'
@@ -221,14 +268,24 @@ PATCHES = [
         ),
     },
     {
-        "name": 'initial permission mode -> "auto" (never bypass)',
+        "name": 'initial permission mode -> "bypassPermissions" (auto when bypass is not allowed)',
         "target": "extension.js",
         # Original method starts: getInitialPermissionMode(){let e=...
         # We insert an early return, leaving the original body as dead code
-        # (no brace counting needed in minified source).
-        "find": re.compile(r'getInitialPermissionMode\(\)\{let '),
-        "replace": 'getInitialPermissionMode(){return"auto";let ',
-        "already": re.compile(r'getInitialPermissionMode\(\)\{return"auto";'),
+        # (no brace counting needed in minified source). `this` is the
+        # settings object; getAllowDangerouslySkipPermissions() is its own
+        # method (reads the claudeCode.allowDangerouslySkipPermissions VS
+        # Code setting). The optional `return"auto";` group re-patches a
+        # bundle that carries the previous (Auto-only) form of this patch.
+        "find": re.compile(r'getInitialPermissionMode\(\)\{(?:return"auto";)?let '),
+        "replace": (
+            'getInitialPermissionMode(){if(this.getAllowDangerouslySkipPermissions())'
+            'return"bypassPermissions";return"auto";let '
+        ),
+        "already": re.compile(
+            r'getInitialPermissionMode\(\)\{if\(this\.getAllowDangerouslySkipPermissions\(\)\)'
+            r'return"bypassPermissions";return"auto";'
+        ),
     },
     {
         "name": f'4a spawn: always pass --model {FORCED_MODEL} (new + resumed)',
@@ -238,13 +295,37 @@ PATCHES = [
         # The SDK turns a set `model` into `--model <value>` (verbatim, so
         # "[1m]" survives). Also matches a previously forced *different*
         # literal so editing FORCED_MODEL re-patches instead of "already".
+        # Patch 11 inserts `effort:"<level>",` between model and stderr, so
+        # both regexes allow that optional key.
         "find": re.compile(
             r'(allowDangerouslySkipPermissions:[\w$]+,model:)'
-            r'(?!"' + _FM + r'")(?:[\w$]+|"[^"]*")(,stderr:)'
+            r'(?!"' + _FM + r'")(?:[\w$]+|"[^"]*")(,(?:effort:"[^"]*",)?stderr:)'
         ),
         "replace": lambda m: f'{m.group(1)}"{FORCED_MODEL}"{m.group(2)}',
         "already": re.compile(
-            r'allowDangerouslySkipPermissions:[\w$]+,model:"' + _FM + r'",stderr:'
+            r'allowDangerouslySkipPermissions:[\w$]+,model:"' + _FM
+            + r'",(?:effort:"[^"]*",)?stderr:'
+        ),
+    },
+    {
+        "name": f'11 spawn: always pass --effort {FORCED_EFFORT} (new + resumed)',
+        "target": "extension.js",
+        # Same spawnClaude() options object as 4a, right after the forced
+        # model (so this must run AFTER 4a):
+        #   ...allowDangerouslySkipPermissions:W,model:"<FM>",stderr:(k)=>{...
+        # The SDK destructures `effort` and appends `--effort <level>`
+        # (`if(this.options.effort)a.push("--effort",this.options.effort)`).
+        # Matches a previously forced *different* level so editing
+        # FORCED_EFFORT re-patches instead of "already"; a `model:` of any
+        # value is accepted so this patch does not depend on FORCED_MODEL.
+        "find": re.compile(
+            r'(allowDangerouslySkipPermissions:[\w$]+,model:"[^"]*",)'
+            r'(?:effort:"(?!' + _FE + r'")[^"]*",)?(stderr:)'
+        ),
+        "replace": lambda m: f'{m.group(1)}effort:"{FORCED_EFFORT}",{m.group(2)}',
+        "already": re.compile(
+            r'allowDangerouslySkipPermissions:[\w$]+,model:"[^"]*",effort:"'
+            + _FE + r'",stderr:'
         ),
     },
     {
@@ -412,20 +493,21 @@ PATCHES = [
     {
         "name": "9b peer (cross-session) messages never become the sticky header",
         "target": "webview/index.js",
-        # User-message component:
-        #   function({session:J,message:Z,...,held:U=!1,...}){let W=s(null),
-        #     B=[...Z.content].reverse(),...,j=B.map(...),...
-        #     M=j.find((p)=>p?.type==="ideDiagnostics"),
-        #     N=j.some((p)=>p?.type==="text")||I91(Z.content),w=V&&hh1(Z),
-        #     O=!U&&!M&&N&&!w,_=yK0(O),...
-        #   ... className:`${v0.message} ${L} ${O?v0.stickyHeader:""} ...`
+        # User-message component (2.1.301):
+        #   function({session:J,message:Z,...,held:H=!1,...}){let D=i(null),
+        #     M=K?.rowRef??D,A=[...Z.content].reverse(),...,O=A.map(...),...
+        #     _=O.find((t)=>t?.type==="ideDiagnostics"),
+        #     T=O.some((t)=>t?.type==="text")||yX1(Z.content),E=U&&XT0(Z),
+        #     k=!H&&!_&&T&&!E,v=AT0(k),...
+        #   ... className:`${p0.message} ${L} ${k?p0.stickyHeader:""} ...`
         # (written as `j` below; the regex takes any `&&` chain of optionally
-        # negated identifiers, pinned by the `,p=fn(j),` tail.)
+        # negated identifiers, pinned by the `,p=fn(j),` tail; up to 60 chars
+        # of other `let` members may sit between the ref and the reverse().)
         # `j` = "this message is the turn header" (sticky class, click-to-
         # scroll handlers, screen-reader heading). A peer message folded into
         # a turn by 9a must not stick over that turn's real header.
         "find": re.compile(
-            r'(let [\w$]+=[\w$]+\(null\),[\w$]+=\[\.\.\.(?P<msg>[\w$]+)\.content\]'
+            r'(let [\w$]+=[\w$]+\(null\),.{0,60}?[\w$]+=\[\.\.\.(?P<msg>[\w$]+)\.content\]'
             r'\.reverse\(\),.{0,1500}?'
             r',(?P<j>[\w$]+)=!?[\w$]+(?:&&!?[\w$]+)+)'
             r'(?!&&(?P=msg)\.origin\?\.kind!=="peer")'
@@ -466,11 +548,64 @@ PATCHES = [
             r';let [\w$]+=[\w$]+!==void 0\?this\.sessionPanels\.get\('
         ),
     },
+    {
+        "name": "12a editor selection -> never handed to the webview (no file chip / block)",
+        "target": "extension.js",
+        # Editor event wiring -> filter(record, settings) (2.1.301; the settings
+        # object is Q2() = {attachOpenFile, attachSelection}, both VS Code
+        # settings, default true):
+        #   function pN1($,J){if(!yv($.selectedText,J))return;
+        #     return J.attachSelection||$.startColumn===void 0?$
+        #       :{filePath:$.filePath,sourceUri:$.sourceUri,startLine:$.startLine,endLine:$.startLine}}
+        #   function yv($,{attachOpenFile:J,attachSelection:Q}){return J||Q&&!!$}
+        #   function cN1($){return $===0?"clear":"retain"}
+        # The record ({filePath,sourceUri,startLine,endLine[,startColumn,
+        # endColumn,selectedText]}) reaches the webview as the
+        # `selection_changed` request and the initial `getSelection` seed,
+        # where it becomes the file chip in the message box and the
+        # <ide_opened_file> / <ide_selection> block of the next prompt.
+        # Always return void 0 -> nothing is emitted, whatever the settings.
+        # (Turning BOTH `claudeCode.attachOpenFile` and
+        # `claudeCode.attachSelection` off reaches the same end unpatched; the
+        # patch makes it independent of per-workspace settings.)
+        "find": re.compile(
+            r'(function [\w$]+\(([\w$]+),([\w$]+)\)\{)'
+            r'if\(![\w$]+\(\2\.selectedText,\3\)\)return;'
+            r'return \3\.attachSelection\|\|\2\.startColumn===void 0\?\2:\{[^{}]*\}\}'
+        ),
+        "replace": lambda m: f'{m.group(1)}return void 0}}',
+        "already": re.compile(
+            r'function [\w$]+\(([\w$]+),([\w$]+)\)\{return void 0\}'
+            r'function [\w$]+\([\w$]+\)\{return [\w$]+===0\?"clear":"retain"\}'
+        ),
+    },
+    {
+        "name": "12b editor selection -> never sent to the CLI (IDE MCP selection_changed)",
+        "target": "extension.js",
+        # The IDE MCP server notifies the CLI of every selection change
+        # (debounced 300 ms in oa1(), and the cached last record is replayed
+        # 500 ms after a CLI connects: `let R=p61();if(R)mL(R,v)`):
+        #   async function mL($,J){try{J.send({jsonrpc:"2.0",
+        #     method:"selection_changed",params:$}).catch(...)}catch(...){...}}
+        # The CLI turns that into its own <ide_selection> / <ide_opened_file>
+        # context. Early `return;` -> the notification is never sent. The
+        # sibling `at_mentioned` notifier (explicit "Add to Claude context")
+        # and the getCurrentSelection MCP tool are left alone.
+        "find": re.compile(
+            r'(async function [\w$]+\([\w$]+,[\w$]+\)\{)'
+            r'(?=try\{[\w$]+\.send\(\{jsonrpc:"2\.0",method:"selection_changed")'
+        ),
+        "replace": lambda m: f'{m.group(1)}return;',
+        "already": re.compile(
+            r'async function [\w$]+\([\w$]+,[\w$]+\)\{return;'
+            r'try\{[\w$]+\.send\(\{jsonrpc:"2\.0",method:"selection_changed"'
+        ),
+    },
 ]
 
 # Oldest extension build these regexes are written for. Older installs are
 # skipped (whatever was patched into them earlier stays in place).
-MIN_VERSION = (2, 1, 286)
+MIN_VERSION = (2, 1, 301)
 _VERSION_RE = re.compile(r"anthropic\.claude-code-(\d+)\.(\d+)\.(\d+)")
 
 EXT_GLOBS = [

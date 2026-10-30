@@ -31,4 +31,9 @@ for skill_path in "${skill_paths[@]}"; do
     echo "Installed skill: ${skill_name}"
 done
 
+if [[ -f "${SCRIPT_DIR}/AGENTS.md" ]]; then
+    cp -a -- "${SCRIPT_DIR}/AGENTS.md" "${CODEX_HOME:-${HOME}/.codex}/AGENTS.md"
+    echo "Installed global AGENTS.md"
+fi
+
 echo "Done. Skills synced to ${CODEX_SKILLS_DIR}"

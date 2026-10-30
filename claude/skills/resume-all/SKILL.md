@@ -72,8 +72,10 @@ Other flags: `--workspace PATH` (recover another workspace), `--tick`
 
 Dead-process recovery above does nothing for a session whose process is alive
 but idle because it hit the usage limit ("You've hit your session limit ·
-resets 5pm (TZ)"), got an API error, was interrupted, or was restarted
-mid-turn and never answered the last prompt. Detect those with:
+resets 5pm (TZ)", or the account-wide "You're out of usage credits. Switch to
+another model, or manage usage credits at ..." seen 2026-10-03, which has no
+reset time), got an API error, was interrupted, or was restarted mid-turn and
+never answered the last prompt. Detect those with:
 
 ```bash
 python3 ~/.claude/skills/resume-all/resume_all.py --stalled --json   # list
@@ -89,15 +91,29 @@ that time has passed), `api-error`, `interrupted` (`[Request interrupted by
 user…]` last), `unanswered` (plain user prompt with no reply).
 
 Acting — **default: `/compact` first, then the continue nudge** (user
-preference 2026-08-25):
+preference 2026-08-25). For the "out of usage credits" banner, first run bare
+`claude-acct` (shows every saved account with its usage) and confirm the
+current login has budget; a nudge on an exhausted account only reprints the
+banner. The sessions' subagents stop with them (their transcripts freeze at
+the banner time): the continue nudge must tell the session to resume each
+subagent by `SendMessage` to its agent id, not relaunch fresh ones.
+Within the first 2 min after the banner the detector still reports 0 stalled
+(`STALL_QUIET_S`); grep the transcript tails directly when the user reports
+a stop sooner than that.
 - tmux-hosted stalled sessions: `--nudge` sends both via `tmux send-keys`.
 - VSCode-hosted ones (the usual case; no tmux) cannot be typed into from a
   script. The row carries the SendMessage peer name (`imaginaire4-…-xx`);
-  for each `NUDGE` row send **two** SendMessage calls in order: first
-  `/compact`, then a continue message that names what it was doing (take
-  the title / last assistant text from the transcript tail so it re-checks
-  any background monitors the limit killed). `wait` rows: report the reset
-  time, do not message.
+  for each `NUDGE` row send ONE SendMessage: a continue message that names
+  what it was doing (take the title / last assistant text from the transcript
+  tail so it re-checks any background monitors the limit killed).
+  **A `/compact` sent by SendMessage does NOT compact** (verified 2026-10-03:
+  the receiver reads it as text, "nothing for me to act on"; slash commands
+  run only when typed in that session's own input or via `tmux send-keys`).
+  So for VSCode tabs the compaction half of the preference is the USER's:
+  report each session's context size (sum of `input_tokens` +
+  `cache_read_input_tokens` + `cache_creation_input_tokens` of its last
+  assistant row with `usage`) and ask the user to type `/compact` in the
+  tabs above ~300k. `wait` rows: report the reset time, do not message.
 - Re-run `--stalled` afterwards: a nudged session's transcript starts moving
   within a minute, so it drops off the list — that is the success check.
 - Duplicate live processes on one session id (two peer names → same sid in

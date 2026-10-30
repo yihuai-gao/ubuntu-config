@@ -1,7 +1,48 @@
 {
   "permissions": {
     "allow": [
+      "Bash(./harness/hc proc_stop:*)",
+      "Bash(harness/hc proc_stop:*)",
+      "Bash(cp /home/yihuai/video-gen/repositories/camera-cross-embodiment/docs/protocol/:*)",
+      "Bash(chmod 666 /storage/hdd4/camx_shared/protocol/:*)",
+      "Bash(bash /storage/hdd4/camx_shared/protocol/build.sh:*)",
+      "Bash(printf:*)",
+      "Bash(harness/hc run_stop:*)",
+      "Bash(crontab -l:*)",
+      "Bash(harness/hc storage_put:*)",
+      "Bash(harness/hc storage_read:*)",
+      "Bash(/data/yihuai/miniforge3/envs/cam-uva/bin/python projects/cosmos3/cam_uva/scripts/eval/robolab/push_eval_code.py:*)",
+      "Bash(mkdir -p /home/yihuai/video-gen/repositories/imaginaire4-output/harness_exchange/*)",
+      "Bash(printf:*)",
+      "Edit(//home/yihuai/video-gen/repositories/imaginaire4-output/harness_exchange/**)",
+      "Bash(harness/hc storage_put:*)",
+      "Bash(harness/hc sync_status:*)",
+      "Bash(bash hf_upload.sh:*)",
+      "Bash(/data/yihuai/miniforge3/envs/cam-uva/bin/python projects/cosmos3/cam_uva/scripts/eval/robolab/push_eval_code.py:*)",
+      "Bash(harness/hc proc_start:*)",
+      "Bash(nohup setsid bash hf_upload.sh:*)",
+      "Bash(/home/yihuai/.local/bin/hf buckets sync:*)",
+      "Bash(ssh:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(ssh jeff@10.32.79.190:*)",
+      "Bash(ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new jeff@10.32.79.190:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(PYTHONPATH=$PWD/projects/cosmos3 CUDA_VISIBLE_DEVICES= /data/yihuai/miniforge3/envs/cam-uva/bin/python projects/cosmos3/cam_uva/.agents/skills/cam-uva-release/export_release.py:*)",
+      "Edit(/storage/hdd16/yihuai/xdof_data/**)",
+      "Bash(/storage/hdd16/yihuai/xdof_data/render_1021/render_all.sh:*)",
+      "Bash(setsid nohup /storage/hdd16/yihuai/xdof_data/render_1021/render_all.sh:*)",
+      "Bash(python3 -I /tmp/claude-1000/-home-yihuai-video-gen-repositories-imaginaire4-cam-uva-1003/fb7d5c70-76bd-42dd-8aaa-8922be1f0002/scratchpad/add_entry.py)",
+      "Bash(find /storage/ssd1/yihuai/data/imaginaire4-output/harness_exchange:*)",
+      "Bash(./harness/hc lepton_eval_stack:*)",
+      "Bash(harness/hc storage_read:*)",
+      "Bash(harness/hc storage_ls:*)",
       "Bash(git push backup main)",
+      "Bash(git apply:*)",
+      "Bash(git add:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(cmp:*)",
       "Bash(ls *)",
       "Bash(find *)",
       "Bash(grep *)",
@@ -71,7 +112,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5-1[1m]",
+  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -105,13 +146,67 @@
             "statusMessage": "composed_config gate (HF run root check)"
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|WebFetch|WebSearch|Bash|Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/subagent_gate.py",
+            "timeout": 10,
+            "statusMessage": "Subagent gate"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/yihuai/reports/hub/bin/hub serve >/dev/null 2>&1 || true",
+            "timeout": 15,
+            "statusMessage": "Report hub: ensure server on 8802",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/subagent_gate.py",
+            "timeout": 10,
+            "statusMessage": "Subagent gate: reminder"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/yihuai/.claude/hooks/subagent_gate.py",
+            "timeout": 10,
+            "statusMessage": "Subagent gate: reset"
+          }
+        ]
       }
     ]
   },
   "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    }
+  },
   "tui": "default",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
+  "switchModelsOnFlag": false,
   "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
@@ -131,26 +226,26 @@
     ],
     "environment": [
       "### Org-wide",
-      "**Organization**: NVIDIA — Deep Imagination Research (DIR) Group / Cosmos Lab (GitLab group `dir`, project `imaginaire4`; docs also reference `cosmos-lab/imaginaire4` and `cosmos-lab/cosmos-infra`)",
+      "**Organization**: NVIDIA \u2014 Deep Imagination Research (DIR) Group / Cosmos Lab (GitLab group `dir`, project `imaginaire4`; docs also reference `cosmos-lab/imaginaire4` and `cosmos-lab/cosmos-infra`)",
       "**Cloud provider(s)**: AWS (S3 via `aws` CLI and `packages/cosmos-s3-utils`), Google Cloud Storage (storage.googleapis.com; GCS credential rotation doc), plus Lepton GPU cloud (`*.xenon.lepton.run`) and NVIDIA NGC",
-      "**Repository visibility**: not queryable via gh (origin is `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git`, an internal GitLab host, not a plain GitHub owner/repo URL) — treat as private/internal: the README states the repo is NVIDIAN-only and must not be accessible to unauthorized people",
-      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Repository visibility**: not queryable via gh (origin is `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git`, an internal GitLab host, not a plain GitHub owner/repo URL) \u2014 treat as private/internal: the README states the repo is NVIDIAN-only and must not be accessible to unauthorized people",
+      "**Internal sharing / snippet hosting**: None configured \u2014 treat public paste/gist services as outside the trust boundary",
       "**Secrets management**: HashiCorp Vault (`VAULT_ADDR`; `ci_cd/vault/vault-deployment-secrets.tmpl`, `ci_cd/vault/vault-docker-secrets.tmpl`); GitLab CI/CD variables (e.g. `GITLAB_TOKEN`); Pulse/TruffleHog secret scanning in CI; `credentials/` is never to be checked in",
-      "**Default / protected branches**: default branch `main`; classic protection not queryable here. Treat `main` (and `master`) as protected — repo docs direct all work to `$USER/<feature>` branches and forbid pushing to `main`",
-      "**CI/CD deploy targets**: GitLab CI on gitlab-master.nvidia.com (stages code-review → build → testing → post; `ci_cd/` YAML files, cosmos-infra templates); Docker/container builds; `deployment/` for Cosmos model cloud deploys; Lepton job submission (`submit`, `ls_remote`, `serve_ckpt`)",
+      "**Default / protected branches**: default branch `main`; classic protection not queryable here. Treat `main` (and `master`) as protected \u2014 repo docs direct all work to `$USER/<feature>` branches and forbid pushing to `main`",
+      "**CI/CD deploy targets**: GitLab CI on gitlab-master.nvidia.com (stages code-review \u2192 build \u2192 testing \u2192 post; `ci_cd/` YAML files, cosmos-infra templates); Docker/container builds; `deployment/` for Cosmos model cloud deploys; Lepton job submission (`submit`, `ls_remote`, `serve_ckpt`)",
       "**Network posture**: internal NVIDIA GitLab reachable over SSH on port 12051; Teleport access path observed (`ext-nv-stg-lepton.teleport.sh`); Lepton GPU nodes reached over their own hostnames; Docker-based dev environment on Ubuntu 24.04",
-      "**Source control**: the trusted repo and its remote only — `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git` (no additional orgs configured for this project scope)",
+      "**Source control**: the trusted repo and its remote only \u2014 `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git` (no additional orgs configured for this project scope)",
       "**Trusted internal domains**: gitlab-master.nvidia.com (including its `/api/v4`), download.nvidia.com and us.download.nvidia.com, and the Lepton job hosts `*.xenon.lepton.run` used by this checkout",
-      "**Trusted cloud buckets**: `nv-cosmos-models`, `nv-00-10206-dir`, `nv-00-10206-robot`, `lepton-l40s` (all usage-corroborated). Also present in repo config only: `nv-00-10206-checkpoint-experiments`, `nv-00-10206-checkpoint` (config-derived — not a confirmed upload destination; uploads of local data still require confirmation)",
+      "**Trusted cloud buckets**: `nv-cosmos-models`, `nv-00-10206-dir`, `nv-00-10206-robot`, `lepton-l40s` (all usage-corroborated). Also present in repo config only: `nv-00-10206-checkpoint-experiments`, `nv-00-10206-checkpoint` (config-derived \u2014 not a confirmed upload destination; uploads of local data still require confirmation)",
       "**Key internal services**: GitLab pipelines MCP server (`.claude/mcp/gitlab/server.py`), Vault, NGC/Docker registry, Lepton compute + checkpoint serving (`serve_ckpt`, `ls_remote`), Hugging Face hub for model artifacts, Postgres targets used by yotta pipelines",
-      "**Internal package registry**: None configured — dependencies come via `uv`/pip from pypi.org and NGC/Docker images",
+      "**Internal package registry**: None configured \u2014 dependencies come via `uv`/pip from pypi.org and NGC/Docker images",
       "**Sensitive data locations & audiences**: `credentials/` (never to be committed), `packages/queue-service/.env` and any `.env`/`*.secret` files, `apis/llm/credentials_loader.py`, `ci_cd/vault/*.tmpl`, `packages/cosmos-lepton/tests/test_secrets_service.py`, `.pulse-trufflehog-allowlist.toml`, plus training data/checkpoints in the `nv-*` buckets; audiences limited to NVIDIANs cleared at the [named+specifics] bar",
       "**Data retention / declassification**: None configured",
-      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`); in this repo that includes `pipelines/sila/launch_scripts/prod_launch.py`, `check_and_launch_prod.py`, and `pipelines/sila/common/prod_launch_monitor.py`",
-      "**Protected deployment namespaces / environments**: k8s namespaces observed in use — `projects` and `robolab`; treat writes/deletes there as protected, and fall back to the Sensitive remote targets heuristic elsewhere",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited \u2014 e.g. matches `prod-db`, not `producer`); in this repo that includes `pipelines/sila/launch_scripts/prod_launch.py`, `check_and_launch_prod.py`, and `pipelines/sila/common/prod_launch_monitor.py`",
+      "**Protected deployment namespaces / environments**: k8s namespaces observed in use \u2014 `projects` and `robolab`; treat writes/deletes there as protected, and fall back to the Sensitive remote targets heuristic elsewhere",
       "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment; also GitLab CI definitions (`.gitlab-ci.yml`, `ci_cd/`) and Vault secret templates",
       "### User-specific",
-      "**Primary use of Claude Code**: software development on the imaginaire4 (i4) monorepo — cam_uva project work under `projects/cosmos3/cam_uva`, training/eval job submission and monitoring on Lepton, and GitLab CI/CD job authoring and validation",
+      "**Primary use of Claude Code**: software development on the imaginaire4 (i4) monorepo \u2014 cam_uva project work under `projects/cosmos3/cam_uva`, training/eval job submission and monitoring on Lepton, and GitLab CI/CD job authoring and validation",
       "**Trusted repo**: `/home/yihuai/video-gen/repositories/imaginaire4-cam-uva-0728` and its configured remote `ssh://gitlab-master.nvidia.com:12051/dir/imaginaire4.git`. Treat as private/internal per the README; confidential material may live there, but secrets and sensitive data are never cleared into it by visibility alone",
       "**Org-specific CLIs**: `uv`, `submit`, `ls_remote`, `serve_ckpt`, `serve_mcp`, `hf`/`hful`, `aws`, `nvidia-smi`/`nvitop`, `ruff`, `just`, `torchrun`, `rollout`, `pacli`, `set-session-title`, `mutagen`",
       "**Routine under `$USER/` prefix**: feature-branch pushes to `origin` under the `yihuaig/`-style `$USER/<feature>` prefix are routine; pushes to `main` are not"

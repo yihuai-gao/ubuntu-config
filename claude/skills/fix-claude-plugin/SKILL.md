@@ -1,6 +1,6 @@
 ---
 name: fix-claude-plugin
-description: Re-apply all local patches to the Claude Code IDE extension (Cursor / VS Code) bundles — disable shift+tab mode cycling, make remoteControlAtStartup work, and force sessions to start in Auto permission mode (never bypass), force every new / resumed session onto Fable 5.1 regardless of what other sessions switched to, make the AskUserQuestion prompt (multiple-choice options) text selectable / copyable, render files sent with SendUserFile (images / videos / audio) inline in the conversation, and make clicked file links (mp4, png, pdf ...) open in the VS Code editor (Media Preview) instead of failing silently or landing in a blank Simple Browser tab over Remote-SSH. Re-runnable after every extension update, since updates re-ship the bundles. Use when the user says "fix the claude plugin", "the plugin updated", remote control doesn't auto-start, shift+tab is back, sessions start in bypass permissions again, a new or resumed session starts on the wrong model (not Fable 5.1), cannot copy / select text in the options prompt (AskUserQuestion), images / videos sent to the user do not show in the plugin, clicking a file link does nothing / opens a blank tab, or asks to re-apply the plugin patches.
+description: Re-apply all local patches to the Claude Code IDE extension (Cursor / VS Code) bundles — disable shift+tab mode cycling, make remoteControlAtStartup work, and force sessions to start in bypass-permissions (skip permissions) mode, Auto when bypass is not allowed, force every new / resumed session onto Fable 5.1 regardless of what other sessions switched to, start every new / resumed session at xhigh effort (thinking depth) regardless of what other sessions picked, make the AskUserQuestion prompt (multiple-choice options) text selectable / copyable, render files sent with SendUserFile (images / videos / audio) inline in the conversation, and make clicked file links (mp4, png, pdf ...) open in the VS Code editor (Media Preview) instead of failing silently or landing in a blank Simple Browser tab over Remote-SSH, and never attach the opened editor file or the selected text to the context (no file chip in the message box, no ide_opened_file / ide_selection block). Re-runnable after every extension update, since updates re-ship the bundles. Use when the user says "fix the claude plugin", "the plugin updated", remote control doesn't auto-start, shift+tab is back, sessions do not start in bypass permissions (skip permissions) any more, a new or resumed session starts on the wrong model (not Fable 5.1), a new or resumed session starts at the wrong effort / thinking depth (not xhigh), cannot copy / select text in the options prompt (AskUserQuestion), images / videos sent to the user do not show in the plugin, clicking a file link does nothing / opens a blank tab, the opened file or selected text keeps showing up in the context (the file chip is back in the message box), or asks to re-apply the plugin patches.
 ---
 
 # Fix Claude Plugin (Claude Code IDE extension patches)
@@ -9,16 +9,22 @@ Applies all local patches to the Claude Code **IDE extension** (Cursor / VS
 Code native UI) bundles. These fix behaviors that have **no supported
 setting** and can only be changed by patching the shipped JavaScript:
 no shift+tab mode cycling, `remoteControlAtStartup` honored, sessions always
-start in Auto permission mode, every new / resumed session runs on
-**Fable 5.1** no matter what other sessions switched to, the context-usage
+start in bypass-permissions (skip permissions) mode (Auto when bypass is not
+allowed), every new / resumed session runs on
+**Fable 5.1** no matter what other sessions switched to, every new / resumed
+session starts at **xhigh** effort (thinking depth) no matter what other
+sessions picked, the context-usage
 pie in the input footer is always visible (not only past 50 % used), text
 in the AskUserQuestion options prompt can be selected and copied, files sent
 with SendUserFile (images / videos / audio) render inline, clicked file
 links open in the VS Code editor (Media Preview for mp4 / png / pdf), and the
 pinned "latest prompt" strip at the top of the conversation always shows
 **your** latest prompt (never a cross-session message from another Claude
-session), and the Session Manager's **New session** button opens the new
-tab in the editor group you are in instead of splitting a new column beside it.
+session), the Session Manager's **New session** button opens the new
+tab in the editor group you are in instead of splitting a new column beside it,
+and the opened editor file / selected text is **never** attached to the
+context (no file chip in the message box, no `ide_opened_file` /
+`ide_selection` block in the prompt, no IDE selection notification to the CLI).
 
 Supersedes and merges the retired `fix-keyboard-shortcuts` and
 `fix-remote-control-startup` skills.
@@ -26,7 +32,7 @@ Supersedes and merges the retired `fix-keyboard-shortcuts` and
 ## How to run
 
 ```bash
-python3 ~/.claude/skills/fix-claude-plugin/patch.py                   # patches 1-6, 9, 10
+python3 ~/.claude/skills/fix-claude-plugin/patch.py                   # patches 1-6, 9-12
 python3 ~/.claude/skills/fix-claude-plugin/patch7_send_user_file.py   # patches 7-8 (--check = dry run)
 ```
 
@@ -48,7 +54,7 @@ survives minifier renames), backs each file up once to
 per patch: `patched`, `already patched`, or `NOT FOUND` (= the extension
 restructured that code; see "After a plugin update" below).
 
-**Supported builds: `MIN_VERSION` and newer** (currently 2.1.286, set in
+**Supported builds: `MIN_VERSION` and newer** (currently 2.1.301, set in
 [patch.py](patch.py)). Each patch is written for one code shape — the one
 that build ships; no variants for older builds are kept. Older installs are
 listed as `skipped (older than …)` and left as they are (whatever was
@@ -62,7 +68,7 @@ through `find_bundles()`.
 The native UI's input is a webview with keydown handlers compiled into
 `webview/index.js`. It does not read `~/.claude/keybindings.json` (terminal
 CLI only) and the handler is not a VS Code command, so it cannot be remapped.
-The patch drops the cycle call, leaving shift+tab swallowed.
+The patch drops the cycle call (2.1.301 shape: `if(ev.key==="Tab"&&ev.shiftKey){if(ev.preventDefault(),!focusGuard(ev))return;cycle();return}` → `{ev.preventDefault();return}`), leaving shift+tab swallowed.
 
 > Related but NOT patched: **ctrl+j** = insert newline (left intact);
 > **ctrl/cmd+escape** = focus input is the registered command
@@ -98,7 +104,7 @@ Prerequisites if it "doesn't work": `"remoteControlAtStartup": true` in
 `~/.claude/settings.json`, signed in with a claude.ai account (not API key),
 CLI ≥ 2.1.51, org toggle enabled on Team/Enterprise plans.
 
-### 3. Sessions always start in **Auto** permission mode  (`extension.js`)
+### 3. Sessions always start in **bypass permissions** (skip permissions) mode  (`extension.js`)
 
 Unpatched resolution order in `getInitialPermissionMode()`:
 
@@ -106,22 +112,35 @@ Unpatched resolution order in `getInitialPermissionMode()`:
 claudeCode.initialPermissionMode setting   // workspace/user VS Code setting
 ?? globalState "defaultPermissionMode"     // <- persisted LAST-USED mode
 ?? "default"
+// then: bypassPermissions without claudeCode.allowDangerouslySkipPermissions -> "default"
 ```
 
-The persisted last-used mode is why sessions kept starting in
-**bypassPermissions** after it was used once. The patch inserts an early
-`return"auto"`, so every new session starts in Auto ("approve actions that
-pass a safety check, pause for anything risky").
+The persisted last-used mode is why the mode of the last session leaked into
+the next one. The patch inserts an early
+`if(this.getAllowDangerouslySkipPermissions())return"bypassPermissions";return"auto"`,
+so every new / resumed session starts in bypass permissions ("skip
+permissions": no permission prompts; hooks still run), and in Auto when
+bypass is not allowed (user 2026-10-30; until then the patch forced Auto).
 
 Notes:
+- Prerequisite: `"claudeCode.allowDangerouslySkipPermissions": true` in the
+  VS Code **user** settings. Without it the extension refuses to launch a
+  bypass session ("allowDangerouslySkipPermissions is off"), which is why the
+  patch falls back to Auto instead of forcing bypass.
+  `permissions.disableBypassPermissionsMode: "disable"` in a Claude settings
+  file bars bypass as well.
+- `"skipDangerousModePermissionPrompt": true` in `~/.claude/settings.json`
+  skips the CLI's "are you sure" confirmation for bypass mode.
 - You can still switch modes freely inside a session; the choice just no
   longer leaks into the next session's starting mode.
 - If Auto mode is unavailable (model doesn't support it, `disableAutoMode`
-  policy, or the `tengu_auto_mode_state` gate), the webview automatically
-  falls back to "default" (Manual) — never bypass.
+  policy, or the `tengu_auto_mode_state` gate), the webview falls back to
+  "default" (Manual).
 - This intentionally overrides the `claudeCode.initialPermissionMode` VS Code
-  setting (whose enum doesn't offer "auto" anyway). To change the enforced
-  mode, edit the `replace` string of patch 3 in [patch.py](patch.py).
+  setting. To change the enforced mode, edit the `replace` and `already`
+  strings of patch 3 in [patch.py](patch.py); its `find` regex also matches
+  the pre-2026-10-30 `return"auto"` form, so an already-patched bundle is
+  re-patched in place.
 
 ### 4. Every new / resumed session runs on **Fable 5.1**  (`extension.js`)
 
@@ -345,7 +364,7 @@ message can open a new turn and become its sticky header.
 - **9a** `Ju(msg)` gets an early `return!1` for `msg.origin?.kind==="peer"`.
   All three turn builders (plain list, focus view, focus-view folds) call
   it, so peer messages are folded into the turn they interrupt everywhere.
-- **9b** the user-message component computes `O=!U&&!M&&N&&!w` = "this
+- **9b** the user-message component computes `k=!H&&!_&&T&&!E` (2.1.301; `let D=i(null),M=K?.rowRef??D,A=[...Z.content].reverse(),…`) = "this
   message is the turn header" (sticky class, click-to-scroll handlers,
   screen-reader heading); `&&Z.origin?.kind!=="peer"` is appended so a
   folded peer message cannot stick over the turn's real header. It still
@@ -391,13 +410,108 @@ Notes:
 - Drag the tab to another group if you do want a split; that never
   triggers this code.
 
+### 11. Every new / resumed session starts at **xhigh** effort  (`extension.js`)
+
+Goal: the effort level (thinking depth) a new or resumed IDE session starts
+at must not depend on what any other session picked. Unpatched:
+
+```
+webview "launch_claude" carries NO effort
+  -> spawnClaude(...) SDK options have no `effort` -> no --effort flag
+  -> CLI resolves it: env CLAUDE_CODE_EFFORT_LEVEL
+       > per-turn effort
+       > session effort (seeded by --effort, changed by /effort or the picker)
+       > settings table: modelSettings.<model>.effortLevel / effortLevel
+         in ~/.claude/settings.json, else the model catalog default
+         (Fable 5.1: default_effort "high")
+in-session effort picker -> applySettings({effortLevel})
+  -> extension saveEffortLevelThroughCli() -> update_settings userSettings
+  -> WRITTEN to ~/.claude/settings.json "effortLevel"   <- leaks to every later session
+```
+
+So one session's pick (e.g. `xhigh`, or `medium`) became the start level of
+every later IDE session *and* of terminal `claude` sessions. The skill itself
+set no effort at all before 2026-10-03.
+
+The patch is one piece, keyed on `FORCED_EFFORT` at the top of
+[patch.py](patch.py) (currently `xhigh`; `low` / `medium` / `high` / `xhigh`):
+
+- **11** `spawnClaude()` options: insert `effort:"<FORCED_EFFORT>"` right
+  after the `model:"…"` forced by patch 4a. The SDK appends
+  `--effort <level>` (`if(this.options.effort)a.push("--effort",…)`), which
+  seeds the CLI's **session** effort and therefore beats the settings table
+  (resolution order read from CLI 2.1.287:
+  `g = env ?? turnEffort ?? sessionEffort ?? settingsTable`). Patch 4a's
+  regexes were widened to tolerate the inserted key; patch 11 must run after
+  4a (it does: list order).
+
+Notes:
+- `/effort` and the footer effort picker still work inside a session (the
+  flag only seeds the session level; only `CLAUDE_CODE_EFFORT_LEVEL` blocks
+  changes). The picker still writes its pick to `settings.json`; that write
+  no longer reaches the next IDE session (the flag wins) but still sets the
+  default for terminal `claude` sessions.
+- `maxEffortLevel` (settings / organization cap) still clamps the forced
+  level; a model without `xhigh` support is downgraded to `high` by the CLI.
+- To change the level, edit `FORCED_EFFORT` and re-run: the `find` regex
+  matches a previously forced *different* literal and re-patches it.
+
+### 12. Opened editor file / selected text never attached to the context  (`extension.js`)
+
+Symptom: every prompt silently carries the file that is open in the editor
+(shown as a file chip in the message box, sent as an `<ide_opened_file>`
+block) and whatever text is selected (`<ide_selection>` block), and the CLI
+gets the same through the IDE MCP channel. The shipped
+`claudeCode.attachOpenFile` setting is only half of it: off, it drops the
+opened file but still attaches selected text ("When off, only text you
+select is added").
+
+Two independent producers, hence two pieces:
+
+```js
+// (a) editor events -> webview.  P06() wires onDidChangeTextEditorSelection /
+//     onDidChangeActiveTextEditor -> n61(emitter, editor, attach):
+CW=JH1(XH1(editor,attach),L4("attachOpenFile")??!0), hL=…, emitter.fire(CW)
+function pN1($,J){if(!yv($.selectedText,J))return;            // <- 12a: `return void 0` instead
+  return J.attachSelection||$.startColumn===void 0?$:{filePath:…,startLine:$.startLine,endLine:$.startLine}}
+function yv($,{attachOpenFile:J,attachSelection:Q}){return J||Q&&!!$}   // J = Q2() = both VS Code settings
+//     CW also seeds a new panel (`getSelection = ()=>CW`). The webview keeps the
+//     record in `session.selection`, shows the chip, and `send()` attaches it to
+//     the next prompt when it differs from the last one sent.
+
+// (b) IDE MCP server -> CLI.  oa1() debounces selection changes 300 ms and the
+//     connect handler replays the cached record (`let R=p61();if(R)mL(R,v)`):
+async function mL($,J){try{J.send({jsonrpc:"2.0",method:"selection_changed",params:$})…}}
+//                       ^ 12b: `return;` inserted here
+```
+
+- **12a** the filter function always returns `void 0`: the extension never
+  emits a selection, so the webview has nothing to show or attach.
+- **12b** the `selection_changed` notifier returns at once, so the CLI never
+  learns of a selection either (it would otherwise build its own
+  `<ide_selection>` / `<ide_opened_file>` context from it).
+
+Notes:
+- Deliberate actions are untouched: the "Add to Claude context" command
+  (`at_mentioned`, ctrl/cmd+alt+K), the native **Insert @-Mention**
+  shortcut (alt+K), typing an `@file` mention, and the
+  `getCurrentSelection` MCP tool a session may call on purpose.
+- `claudeCode.attachOpenFile` and `claudeCode.attachSelection` (new in 2.1.301)
+  become irrelevant (every branch ends in the patched filter); both may stay
+  at their defaults. Turning both off is the supported, per-workspace way to
+  the same end.
+- The CLI's system-prompt sentence "The user's IDE selection (if any) is
+  included in the conversation context and marked with ide_selection tags"
+  still appears; it is static text, no selection ever follows it.
+
 ## After a plugin update
 
 Just run the script again — the new version's bundles get patched. If a patch
 reports `NOT FOUND`, the extension restructured that code: grep the target
 bundle for the anchor strings (`key==="Tab"` + `shiftKey`;
 `ide_rc_auto_enable_gate`; `getInitialPermissionMode`; `,model:` next to
-`allowDangerouslySkipPermissions:` in `spawnClaude`, `getModelSetting`,
+`allowDangerouslySkipPermissions:` in `spawnClaude` (patches 4a and 11,
+`,stderr:` after it), `getModelSetting`,
 `async setModel(`; `>=50)return null` + `{percentageUsed:` and `{percentage:`
 + `style:{display:"block"}` for the pie; `.questionsContainer_` in
 `index.css` and `"aria-checked":` + `"aria-disabled":` + `onClick:` in
@@ -408,7 +522,9 @@ and `.fileOpener),` inside a `let X=[new …]` registry list in `index.js` for
 the sent-file / link patches; `.isEmpty||` … `.isSynthetic)return!1;`
 (turn-start predicate) and `.some((` … `?.type==="text")` followed by a
 `=!` … `&&` chain (the user-message sticky flag) for the latest-prompt
-strip; `await this.startClaudeGroup()` for the new-session column), locate
+strip; `await this.startClaudeGroup()` for the new-session column;
+`.selectedText,` … `?` … `:void 0}` followed by `===0?"clear":"retain"}` and
+`method:"selection_changed",params:` for the opened-file / selection context), locate
 the new form, **replace** that patch's `find` / `already` regexes (and the
 shape shown in this file) with it, and bump `MIN_VERSION` in
 [patch.py](patch.py) to that build. Old shapes are not kept as variants.
@@ -427,5 +543,5 @@ Restore any bundle from its `*.prepatch-bak` sibling (`index.js.prepatch-bak`,
 - Terminal mode (`"claudeCode.useTerminal": true`) runs the real CLI REPL,
   which honors `~/.claude/keybindings.json` and `remoteControlAtStartup`
   natively — at the cost of the native webview UI.
-- Manual per-session: `/remote-control` to connect, mode picker to leave
-  bypass.
+- Manual per-session: `/remote-control` to connect, mode picker to pick the
+  mode.

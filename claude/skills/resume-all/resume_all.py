@@ -50,7 +50,11 @@ STALE_TICK_WARN_S = 180  # warn if the timer hasn't ticked for this long
 STALL_QUIET_S = 120      # a live session is "stalled" only if its transcript
                          # has been untouched this long (else it is working)
 STALL_LOOKBACK = 12      # messages inspected at the transcript tail
-LIMIT_RE = re.compile(r"hit your (?:session|usage) limit", re.I)
+# Two banners: the per-session/weekly limit ("You've hit your session limit ·
+# resets 5pm (TZ)") and the account-wide one seen 2026-10-03 ("You're out of
+# usage credits. Switch to another model, or manage usage credits at ..."),
+# which carries no reset time and clears after `claude-acct <other account>`.
+LIMIT_RE = re.compile(r"hit your (?:session|usage) limit|out of usage credits", re.I)
 RESET_RE = re.compile(r"resets\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*\(([^)]+)\)", re.I)
 API_ERR_RE = re.compile(r"^\s*API Error", re.I)
 INTERRUPT_RE = re.compile(r"^\s*\[Request interrupted by user")
