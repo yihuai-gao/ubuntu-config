@@ -4,7 +4,9 @@
 
 Whenever you update a skill under `~/.claude/skills/` (e.g. `static-review` — the review skill),
 copy the updated files to the mirror at `~/ubuntu-config/claude/skills/<skill-name>/` in the same
-pass and verify with `diff -q`. The same holds for a hook under `~/.claude/hooks/` (mirror
+pass and verify with `diff -q`. Exception: `desktop-forwarding` lives in the slurm submodule at
+`~/ubuntu-config/slurm/claude/skills/desktop-forwarding/` (user, 2026-11-03); `install_skills.sh` installs
+from both roots. The same holds for a hook under `~/.claude/hooks/` (mirror
 `~/ubuntu-config/claude/hooks/`), for `~/.claude/settings.json` (mirror `~/ubuntu-config/claude/settings.json`,
 the hook wiring lives there) and for this file (mirror `~/ubuntu-config/claude/CLAUDE.md`): copy the whole
 file in the same pass (user, 2026-10-26, after the subagent gate hook was found unwired and absent from the
