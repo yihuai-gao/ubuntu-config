@@ -1,0 +1,3 @@
+[submodule "slurm"]
+	path = slurm
+	url = git@github.com:yihuai-gao/slurm.git

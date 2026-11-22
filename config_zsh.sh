@@ -1,0 +1,134 @@
+#!/bin/bash
+
+# Install plugins for oh-my-zsh
+
+# Pin zsh-autocomplete to a known-good commit (newer versions have regressions)
+ZSH_AUTOCOMPLETE_COMMIT=316c588a92e3444e919ca9a341fc8894c82800a2
+git clone https://github.com/marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
+git -C ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete checkout $ZSH_AUTOCOMPLETE_COMMIT
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+# git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
+
+
+# If you do not have https access to github (typically on servers in China), please use the following ssh cloning instead.
+# Please upload your ssh key to github first. Use `ssh git@github.com` to check ssh connectivity.
+# Or you can setup your https proxy in through `git config` and continue to use https cloning.
+
+# git clone git@github.com:marlonrichert/zsh-autocomplete.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete
+# git -C ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autocomplete checkout $ZSH_AUTOCOMPLETE_COMMIT
+# git clone git@github.com:zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 
+# git clone git@github.com:zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+# git clone git@github.com:skywind3000/z.lua.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua
+# git clone --depth=1 git@github.com:romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
+
+# Alternative (requries Nerd Fonts) ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# export EDITOR='f() { if [ $# -gt 0 ]; then code --wait "$@"; else code; fi }; f' To use code as the default editor in yazi etc.
+
+
+# Create a backup of zshrc. If you have modified it, please remember to copy the modified content to the new zshrc.
+# Never clobber an existing backup: rerunning this script would otherwise destroy the original.
+if [ -e ~/.zshrc ] && [ ! -e ~/.zshrc_bak ]; then
+    mv ~/.zshrc ~/.zshrc_bak
+fi
+: > ~/.zshrc
+cat <<'ZSHRC_EOF' >> ~/.zshrc
+
+export PATH=$PATH:${HOME}/.local/bin
+export TZ="America/Los_Angeles"
+
+ZSH_THEME="eastwood"
+
+# To suppress some warning messages
+zle -N insert-unambiguous-or-complete 
+zle -N menu-search
+zle -N recent-paths
+
+setopt INC_APPEND_HISTORY # Append to the history file immediately, not when the shell exits
+setopt SHARE_HISTORY # Share history between all open terminal sessions
+setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming history
+setopt HIST_IGNORE_DUPS # Don't record an entry that was just recorded
+
+plugins=(
+  git
+  zsh-autosuggestions
+  zsh-autocomplete
+  zsh-syntax-highlighting
+  themes
+)
+export ZSH="$HOME/.oh-my-zsh"
+source $ZSH/oh-my-zsh.sh
+
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+# source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+export HISTSIZE=1000000
+WORDCHARS="*?_[]~=&;!#$%^(){}<>"
+
+export PATH="$HOME/.local/usr/bin:$PATH"
+export EDITOR="vim"
+
+# Costomized zsh-autocomplete settings: please refer to https://github.com/marlonrichert/zsh-autocomplete
+#   Make Enter submit the command line straight from the menu
+bindkey -M menuselect "\\r" .accept-line
+#   In menuselect mode (triggered by up arrow when typing commands) use left and right arrow keys 
+#   to move cursor instead of selecting menu items
+bindkey -M menuselect \
+    "\\e[D" .backward-char \
+    "\\eOD" .backward-char \
+    "\\e[C" .forward-char \
+    "\\eOC" .forward-char \
+    "^[[1;5D" .backward-word \
+    "^[[1;5C" .forward-word \
+    "\e[H" .beginning-of-line \
+    "\eOH" .beginning-of-line \
+    "\e[F" .end-of-line \
+    "\eOF" .end-of-line
+
+
+bindkey \
+    "^[[1;5D" .backward-word \
+    "^[[1;5C" forward-word \
+    "\e[H" .beginning-of-line \
+    "\eOH" .beginning-of-line \
+    "\e[F" .end-of-line \
+    "\eOF" .end-of-line
+bindkey '^U' kill-buffer
+
+#   Use Ctrl-Backsbace to kill the word before the cursor
+bindkey "^H" backward-kill-word
+zstyle ":autocomplete:*" delay 0.2  # seconds (float)
+zstyle ":autocomplete:*" min-input 3    # characters
+zstyle ":autocomplete:history-search-backward:*" list-lines 1000
+zstyle ":autocomplete:history-incremental-search-backward:*" list-lines 1000
+zstyle -e  ":autocomplete:*:*" list-lines "reply=( $(( LINES / 3 )) )"
+
+eval "$(zoxide init zsh)"
+
+source $HOME/ubuntu-config/zsh_functions.sh
+
+export FZF_DEFAULT_OPTS="--bind=ctrl-left:backward-word,ctrl-right:forward-word,ctrl-up:prev-history,ctrl-down:next-history,ctrl-a:select-all+accept --multi --reverse --history=$HOME/.fzf_history"
+
+source <(fzf --zsh)
+
+## For SLURM systems
+# source /etc/profile.d/modules.sh
+# module load slurm
+
+
+ZSHRC_EOF
+
+# Copy the configuration file for powerlevel10k. Please remove it if you would like to configure it by yourself.
+# cp ./p10k.zsh ~/.p10k.zsh
+
+## To set customized prompt
+# setopt PROMPT_SUBST
+# parse_git_branch() {
+#     local branch=$(git branch --show-current 2> /dev/null)
+#     if [[ -n $branch ]]; then
+#         echo "%F{green}$branch%f"
+#     fi
+# }
+# export PROMPT='$(parse_git_branch) %F{cyan}%~ %F{reset}%# '
